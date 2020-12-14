@@ -19,7 +19,24 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\gclib\GlobalVoidPtr.cpp" />
+    <ClCompile Include="..\src\gclib\StackVoidPtr.cpp" />
+    <ClCompile Include="..\src\gclib\Thread.cpp" />
+    <ClCompile Include="..\src\gclib\VoidPtr.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\gclib\DoublyLinkedList.hpp" />
+    <ClInclude Include="..\include\gclib\DoublyLinkedListNode.hpp" />
+    <ClInclude Include="..\include\gclib\GlobalPtr.hpp" />
+    <ClInclude Include="..\include\gclib\GlobalVoidPtr.hpp" />
+    <ClInclude Include="..\include\gclib\Ptr.hpp" />
+    <ClInclude Include="..\include\gclib\SinglyLinkedList.hpp" />
+    <ClInclude Include="..\include\gclib\SinglyLinkedListNode.hpp" />
+    <ClInclude Include="..\include\gclib\StackPtr.hpp" />
+    <ClInclude Include="..\include\gclib\StackVoidPtr.hpp" />
+    <ClInclude Include="..\include\gclib\VoidPtr.hpp" />
+    <ClInclude Include="..\src\gclib\Thread.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -87,14 +104,14 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>../../include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../include</AdditionalIncludeDirectories>
       <DisableLanguageExtensions>true</DisableLanguageExtensions>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
