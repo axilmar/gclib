@@ -117,7 +117,7 @@ public:
 
 class GC {
 public:
-    static void init(std::size_t blockCount, std::size_t memSize);
+    static void init(std::size_t memSize);
 
 private:
     static void* beginMalloc(std::size_t size, void (*finalizer)(void*, void*), void*& t) noexcept;
@@ -185,6 +185,7 @@ using PtrList = DList<VoidPtr>;
 
 struct Block {
     PtrList ptrs;
+    void* end;
     void(*finalizer)(void*, void*);
 };
 
@@ -204,9 +205,6 @@ struct Thread {
 
 
 static thread_local Thread thread;
-static std::atomic<Block**> blockPtrMem{ nullptr };
-static std::atomic<Block**> blockPtrMemTop{ nullptr };
-static Block** blockPtrMemTopEnd{ nullptr };
 static std::atomic<char*> mem{ nullptr };
 static char* memEnd{ nullptr };
 static std::atomic<char*> memTop{ nullptr };
@@ -215,15 +213,7 @@ static std::atomic<char*> memTop{ nullptr };
 static Block* allocateMemory(std::size_t size) {
     Block* res = (Block*)memTop.fetch_add(size, std::memory_order_acq_rel);
     if ((char*)res + size <= memEnd) {
-        Block** block = blockPtrMemTop.fetch_add(1, std::memory_order_acq_rel);
-        if (block < blockPtrMemTopEnd) {
-            *block = res;
-            return res;
-        }
-        else {
-            //TODO
-            throw 1;
-        }
+        return res;
     }
 
     //TODO
@@ -296,6 +286,7 @@ void* GC::beginMalloc(std::size_t size, void(*finalizer)(void*, void*), void*& t
     Block* block = allocateMemory(size);
     if (!block) return nullptr;
     new (block) Block;
+    block->end = (char*)block + size;
     block->finalizer = finalizer;
     t = thread.ptrs;
     thread.ptrs = &block->ptrs;
@@ -313,9 +304,7 @@ void GC::free(void* mem, void* t) noexcept {
 }
 
 
-void GC::init(std::size_t blockCount, std::size_t memSize) {
-    blockPtrMem = blockPtrMemTop = (Block**)::operator new(blockCount * sizeof(Block*));
-    blockPtrMemTopEnd = blockPtrMem + blockCount;
+void GC::init(std::size_t memSize) {
     mem = memTop = (char*)::operator new(memSize);
     memEnd = mem.load() + memSize;
 }
@@ -354,7 +343,7 @@ Ptr<Foo> func(int depth) {
 int main() {
     static constexpr std::size_t MAX_DEPTH = 24;
 
-    GC::init((1 << MAX_DEPTH), (sizeof(Block) + sizeof(Foo)) * ((1 << MAX_DEPTH)));
+    GC::init((sizeof(Block) + sizeof(Foo)) * ((1 << MAX_DEPTH)));
 
 
     auto dur = time_function([]() {
