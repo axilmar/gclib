@@ -354,3 +354,5 @@ int main() {
     system("pause");
     return 0;
 }
+
+/* avoid finalizer, provide member pointers, manually check member pointers etc */
