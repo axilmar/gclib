@@ -212,6 +212,25 @@ static char* memEnd{ nullptr };
 static std::atomic<char*> memTop{ nullptr };
 
 
+static Block* allocateMemory(std::size_t size) {
+    Block* res = (Block*)memTop.fetch_add(size, std::memory_order_acq_rel);
+    if ((char*)res + size <= memEnd) {
+        Block** block = blockPtrMemTop.fetch_add(1, std::memory_order_acq_rel);
+        if (block < blockPtrMemTopEnd) {
+            *block = res;
+            return res;
+        }
+        else {
+            //TODO
+            throw 1;
+        }
+    }
+
+    //TODO
+    throw 0;
+}
+
+
 VoidPtr::VoidPtr(void* value) : m_value(value) {
     m_mutex = thread.mutex;
     m_mutex->lock();
@@ -269,25 +288,6 @@ VoidPtr& VoidPtr::operator = (VoidPtr&& ptr) {
     m_value = temp;
     thread.rootMutex.unlock();
     return *this;
-}
-
-
-static Block* allocateMemory(std::size_t size) {
-    Block* res = (Block*)memTop.fetch_add(size);
-    if ((char*)res + size <= memEnd) {
-        Block** block = blockPtrMemTop.fetch_add(1);
-        if (block < blockPtrMemTopEnd) {
-            *block = res;
-            return res;
-        }
-        else {
-            //TODO
-            throw 1;
-        }
-    }
-
-    //TODO
-    throw 0;
 }
 
 
