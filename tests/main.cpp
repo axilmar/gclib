@@ -504,33 +504,31 @@ void Mutex::unlockNotify() {
 
 
 VoidPtr::VoidPtr(void* value) : m_value(value) {
-    m_mutex = &gcThread.mutex;
-    m_mutex->lock();
+    gcThread.mutex.lock();
     attach();
-    m_mutex->unlock();
+    gcThread.mutex.unlock();
 }
 
 
 VoidPtr::VoidPtr(const VoidPtr& ptr) {
-    m_mutex = &gcThread.mutex;
-    m_mutex->lock();
+    gcThread.mutex.lock();
     m_value = ptr.m_value;
     attach();
-    m_mutex->unlock();
+    gcThread.mutex.unlock();
 }
 
 
 VoidPtr::VoidPtr(VoidPtr&& ptr) {
-    m_mutex = &gcThread.mutex;
-    m_mutex->lock();
+    gcThread.mutex.lock();
     m_value = ptr.m_value;
     ptr.m_value = nullptr;
     attach();
-    m_mutex->unlock();
+    gcThread.mutex.unlock();
 }
 
 
 VoidPtr::~VoidPtr() {
+    if (!m_mutex) return;
     m_mutex->lock();
     ((DNode<VoidPtr>*)this)->detach();
     m_mutex->unlock();
@@ -565,9 +563,11 @@ VoidPtr& VoidPtr::operator = (VoidPtr&& ptr) {
 
 void VoidPtr::attach() {
     if ((void*)this >= gcMem && (void*)this < gcMemEnd) {
+        m_mutex = nullptr;
         gcThread.ptrs->append(this);
         return;
     }
+    m_mutex = &gcThread.mutex;
     gcThread.rootPtrs.append(this);
 }
 
