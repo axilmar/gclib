@@ -11,6 +11,9 @@ public:
 
     void unlock() {
     }
+
+    void unlockNotify() {
+    }
 };
 
 
@@ -323,6 +326,7 @@ static Block* allocateMemory(std::size_t size) {
     if ((char*)res + size <= gcMemEnd) {
         return res;
     }
+    gcMemTop.fetch_sub(size, std::memory_order_acq_rel);
 
     collectGarbage();
 
@@ -330,6 +334,7 @@ static Block* allocateMemory(std::size_t size) {
     if ((char*)res + size <= gcMemEnd) {
         return res;
     }
+    gcMemTop.fetch_sub(size, std::memory_order_acq_rel);
 
     throw BadAlloc();
 }
@@ -371,6 +376,9 @@ static void getAllBlocks() noexcept {
     void* memTop = gcMemTop.load(std::memory_order_acquire);
     for (Block* block = (Block*)gcMem.load(std::memory_order_acquire); block < (Block*)memTop; block = (Block*)block->end) {
         gcAllBlocks.push_back(block);
+        if (block >= memTop) {
+            int x = 0;
+        }
     }
 }
 
@@ -573,7 +581,7 @@ void VoidPtr::attach() {
 
 
 void* GC::beginMalloc(std::size_t size, void(*finalizer)(void*, void*), void*& t) {
-    size += sizeof(Block);
+    size = (sizeof(Block) + size + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
     Block* block = allocateMemory(size);
     new (block) Block;
     block->newAddr = UNMARKED;
@@ -620,6 +628,7 @@ void collectGarbage() {
 
 #include <iostream>
 #include <chrono>
+#include <memory>
 
 
 template <class F> double time_function(F&& func) {
@@ -670,8 +679,84 @@ static void test() {
 }
 
 
+static void test1() {
+    GC::init(65536);
+
+    double dur = time_function([]() {
+        for (int i = 0; i < 10'000'000; ++i) {
+            Ptr<Foo> foo1 = gcnew<Foo>();
+            Ptr<Foo> foo2 = gcnew<Foo>();
+            foo1->right = foo2;
+            foo2->left = foo1;
+        }
+    });
+
+    collectGarbage();
+    
+    std::cout << dur << std::endl;
+}
+
+
+static void test2() {
+    double dur = time_function([]() {
+        for (int i = 0; i < 10'000'000; ++i) {
+            std::shared_ptr<Foo> foo1 = std::make_shared<Foo>();
+            std::shared_ptr<Foo> foo2 = std::make_shared<Foo>();
+        }
+    });
+
+    std::cout << dur << std::endl;
+}
+
+
+static void test3() {
+    GC::init(65535);
+
+    double dur = time_function([]() {
+
+        std::thread thread{[]() {
+            for (int i = 0; i < 1'000'000; ++i) {
+                Ptr<Foo> foo1 = gcnew<Foo>();
+            }
+        }};
+
+        thread.join();
+    });
+
+    collectGarbage();
+    
+    std::cout << dur << std::endl;
+}
+
+
+static void test4() {
+    GC::init(65535);
+
+    double dur = time_function([]() {
+
+        std::vector<std::thread> threads(2);
+
+        for (std::thread& thread : threads) {
+            thread = std::thread{ []() {
+                for (int i = 0; i < 100'000; ++i) {
+                    Ptr<Foo> foo1 = gcnew<Foo>();
+                }
+            }};
+        }
+
+        for (std::thread& thread : threads) {
+            thread.join();
+        }
+    });
+
+    collectGarbage();
+    
+    std::cout << dur << std::endl;
+}
+
+
 int main() {
-    test();
+    test4();
     system("pause");
     return 0;
 }
