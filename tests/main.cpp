@@ -292,6 +292,7 @@ static char* gcMemEnd{ nullptr };
 static std::atomic<char*> gcMemTop{ nullptr };
 static std::atomic<bool> gcFlag{false};
 static std::mutex gcMutex;
+static std::condition_variable gcWaitCollectionCond;
 static DList<Thread> gcThreads;
 static DList<ThreadData> gcThreadData;
 static Mutex gcPtrMutex;
@@ -340,7 +341,15 @@ static Block* allocateMemory(std::size_t size) {
 }
 
 
-static void stopThreads() {
+static bool stopThreads() {   
+    bool prev = false;
+    if (!gcFlag.compare_exchange_strong(prev, true, std::memory_order_release)) {
+        std::mutex mutex;
+        std::unique_lock lock(mutex);
+        gcWaitCollectionCond.wait(lock);
+        return false;
+    }
+
     gcMutex.lock();
     
     for (Thread* thread = gcThreads.first(); thread != gcThreads.end(); thread = thread->m_next) {
@@ -351,8 +360,8 @@ static void stopThreads() {
     for (ThreadData* threadData = gcThreadData.first(); threadData != gcThreadData.end(); threadData = threadData->m_next) {
         threadData->mutex.lock();
     }
-    
-    gcFlag.store(true, std::memory_order_release);
+
+    return true;
 }
 
 
@@ -369,6 +378,7 @@ static void resumeThreads() noexcept {
     }
     
     gcMutex.unlock();
+    gcWaitCollectionCond.notify_all();
 }
 
 
@@ -616,7 +626,7 @@ void gcdelete(void* gcMem) noexcept {
 
 
 void collectGarbage() {
-    stopThreads();
+    if (!stopThreads()) return;
     mark();
     const std::vector<ThreadData*> threadDataToDelete = sweep();
     resumeThreads();
