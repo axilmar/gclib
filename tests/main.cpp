@@ -151,6 +151,9 @@ template <class T, class... Args> Ptr<T> gcnew(Args&&... args) {
 }
 
 
+void gcdelete(void* mem) noexcept;
+
+
 #include <atomic>
 
 
@@ -304,12 +307,18 @@ void GC::endMalloc(void* t) noexcept {
 
 void GC::free(void* mem, void* t) noexcept {
     thread.ptrs = (PtrList*)t;
+    gcdelete(mem);
 }
 
 
 void GC::init(std::size_t memSize) {
     mem = memTop = (char*)::operator new(memSize);
     memEnd = mem.load() + memSize;
+}
+
+
+void gcdelete(void* mem) noexcept {
+    ((Block*)mem)->finalizer = nullptr;
 }
 
 
