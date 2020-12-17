@@ -25,7 +25,9 @@ public:
 
     void unlock();
 
-    void unlockNotify();
+    void lockForGC();
+
+    void unlockForGC();
 
 private:
     std::atomic<bool> m_flag{ false };
@@ -228,13 +230,6 @@ template <class T> struct DList : DNode<T> {
         ((DNode<T>*)m_prev)->m_next = obj;
         m_prev = obj;
     }
-
-    void append(const DList<T>& other) noexcept {
-        ((DNode<T>*)other.m_next)->m_prev = m_prev;
-        ((DNode<T>*)other.m_prev)->m_next = (T*)this;
-        ((DNode<T>*)m_prev)->m_next = other.m_next;
-        m_prev = other.m_prev;
-    }
 };
 
 
@@ -250,8 +245,8 @@ struct Block {
 
 
 struct PTR {
-    void* m_prev;
-    void* m_next;
+    VoidPtr* m_prev;
+    VoidPtr* m_next;
     char* m_value;
     void* m_mutex;
 };
@@ -287,7 +282,7 @@ public:
 
 
 static thread_local Thread gcThread;
-static std::atomic<char*> gcMem{ nullptr };
+static char* gcMem{ nullptr };
 static char* gcMemEnd{ nullptr };
 static std::atomic<char*> gcMemTop{ nullptr };
 static std::atomic<bool> gcFlag{false};
@@ -322,43 +317,56 @@ Thread::~Thread() {
 }
 
 
-static Block* allocateMemory(std::size_t size) {
-    Block* res = (Block*)gcMemTop.fetch_add(size, std::memory_order_acq_rel);
-    if ((char*)res + size <= gcMemEnd) {
+static void threadWaitGC(std::condition_variable& cond) {
+    std::mutex mutex;
+    std::unique_lock lock(mutex);
+    gcWaitCollectionCond.wait(lock);
+}
+
+
+static char* allocateMemoryHelper(std::size_t size) {
+    if (gcFlag.load(std::memory_order_acquire)) {
+        threadWaitGC(gcWaitCollectionCond);
+    }
+
+    char* res = gcMemTop.fetch_add(size, std::memory_order_acq_rel);
+    char* end = res + size;
+
+    if (end <= gcMemEnd) {
         return res;
     }
-    gcMemTop.fetch_sub(size, std::memory_order_acq_rel);
 
+    gcMemTop.fetch_sub(size, std::memory_order_acq_rel);
+    return nullptr;
+}
+
+
+static char* allocateMemory(std::size_t size) {
+    char* res = allocateMemoryHelper(size);
+    if (res) return res;
     collectGarbage();
-
-    res = (Block*)gcMemTop.fetch_add(size, std::memory_order_acq_rel);
-    if ((char*)res + size <= gcMemEnd) {
-        return res;
-    }
-    gcMemTop.fetch_sub(size, std::memory_order_acq_rel);
-
+    res = allocateMemoryHelper(size);
+    if (res) return res;
     throw BadAlloc();
 }
 
 
 static bool stopThreads() {   
     bool prev = false;
-    if (!gcFlag.compare_exchange_strong(prev, true, std::memory_order_release)) {
-        std::mutex mutex;
-        std::unique_lock lock(mutex);
-        gcWaitCollectionCond.wait(lock);
+    if (!gcFlag.compare_exchange_strong(prev, true, std::memory_order_acq_rel)) {
+        threadWaitGC(gcWaitCollectionCond);
         return false;
     }
 
     gcMutex.lock();
-    
+
     for (Thread* thread = gcThreads.first(); thread != gcThreads.end(); thread = thread->m_next) {
         if (thread == &gcThread) continue;
-        thread->mutex.lock();
+        thread->mutex.lockForGC();
     }
-    
+
     for (ThreadData* threadData = gcThreadData.first(); threadData != gcThreadData.end(); threadData = threadData->m_next) {
-        threadData->mutex.lock();
+        threadData->mutex.lockForGC();
     }
 
     return true;
@@ -369,12 +377,12 @@ static void resumeThreads() noexcept {
     gcFlag.store(false, std::memory_order_release);
     
     for (ThreadData* threadData = gcThreadData.last(); threadData != gcThreadData.end(); threadData = threadData->m_prev) {
-        threadData->mutex.unlockNotify();
+        threadData->mutex.unlockForGC();
     }
     
     for (Thread* thread = gcThreads.last(); thread != gcThreads.end(); thread = thread->m_prev) {
         if (thread == &gcThread) continue;
-        thread->mutex.unlockNotify();
+        thread->mutex.unlockForGC();
     }
     
     gcMutex.unlock();
@@ -383,12 +391,9 @@ static void resumeThreads() noexcept {
 
 
 static void getAllBlocks() noexcept {
-    void* memTop = gcMemTop.load(std::memory_order_acquire);
-    for (Block* block = (Block*)gcMem.load(std::memory_order_acquire); block < (Block*)memTop; block = (Block*)block->end) {
+    char* memTop = gcMemTop.load(std::memory_order_acquire);
+    for (Block* block = (Block*)gcMem; block < (Block*)memTop; block = (Block*)block->end) {
         gcAllBlocks.push_back(block);
-        if (block >= memTop) {
-            int x = 0;
-        }
     }
 }
 
@@ -445,7 +450,7 @@ static void finalize(Block* block) {
 
 
 static std::vector<ThreadData*> sweep() noexcept {
-    char *newMemTop = gcMem.load(std::memory_order_acquire);
+    char *newMemTop = gcMem;
     
     for (Block* block : gcAllBlocks) {
         if (block->newAddr == MARKED) {
@@ -502,9 +507,7 @@ void Mutex::lock() {
             std::this_thread::yield();
         }
         else {
-            std::mutex mutex;
-            std::unique_lock lock(mutex);
-            m_cond.wait(lock);
+            threadWaitGC(m_cond);
         }
     }
 }
@@ -515,7 +518,15 @@ void Mutex::unlock() {
 }
 
 
-void Mutex::unlockNotify() {
+void Mutex::lockForGC() {
+    bool prev = false;
+    while (!m_flag.compare_exchange_weak(prev, true, std::memory_order_acquire, std::memory_order_relaxed)) {
+        std::this_thread::yield();
+    }
+}
+
+
+void Mutex::unlockForGC() {
     unlock();
     m_cond.notify_all();
 }
@@ -592,7 +603,7 @@ void VoidPtr::attach() {
 
 void* GC::beginMalloc(std::size_t size, void(*finalizer)(void*, void*), void*& t) {
     size = (sizeof(Block) + size + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-    Block* block = allocateMemory(size);
+    Block* block = (Block*)allocateMemory(size);
     new (block) Block;
     block->newAddr = UNMARKED;
     block->end = (char*)block + size;
@@ -616,7 +627,7 @@ void GC::free(void* gcMem, void* t) noexcept {
 
 void GC::init(std::size_t memSize) {
     gcMem = gcMemTop = (char*)::operator new(memSize);
-    gcMemEnd = gcMem.load() + memSize;
+    gcMemEnd = gcMem + memSize;
 }
 
 
@@ -759,7 +770,7 @@ static void test4() {
         }
     });
 
-    collectGarbage();
+    //collectGarbage();
     
     std::cout << dur << std::endl;
 }
