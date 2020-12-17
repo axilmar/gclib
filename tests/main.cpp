@@ -294,7 +294,6 @@ static DList<ThreadData> gcThreadData;
 static Mutex gcPtrMutex;
 static PtrList gcPtrs;
 static std::vector<Block*> gcAllBlocks;
-static std::vector<Block*> gcMarkedBlocks;
 static std::vector<std::pair<char**, Block*>> gcScannedPtrs;
 
 
@@ -390,7 +389,6 @@ static void mark(Block* block) noexcept {
     if (block->newAddr == MARKED) return;
     block->newAddr = MARKED;
     scan(block->ptrs);
-    gcMarkedBlocks.push_back(block);
 }
 
 
@@ -428,15 +426,17 @@ static void finalize(Block* block) {
 }
 
 
-static void sweep() noexcept {
+static std::vector<ThreadData*> sweep() noexcept {
     char *newMemTop = gcMem.load(std::memory_order_acquire);
     
     for (Block* block : gcAllBlocks) {
         if (block->newAddr == MARKED) {
+            block->newAddr = UNMARKED;
             block->newAddr = newMemTop;
             const std::size_t blockSize = block->end - (char*)block;
             newMemTop += blockSize;
             block->end = newMemTop;
+            memmove(block->newAddr, block, blockSize);
         }
         else {
             finalize(block);
@@ -444,15 +444,30 @@ static void sweep() noexcept {
     }
 
     for (const auto& p : gcScannedPtrs) {
-        const char* const ptrValue = *p.first;
-        const std::size_t offset = ptrValue - (char*)p.second;
-        *p.first = p.second->newAddr + offset;
+        char* const oldPtrValue = *p.first;
+        const std::size_t offset = oldPtrValue - (char*)p.second;
+        char* const newPtrValue = p.second->newAddr + offset;
+        *p.first = newPtrValue;
+    }
+
+    std::vector<ThreadData*> threadDataToDelete;
+    for (ThreadData* data = gcThreadData.first(); data != gcThreadData.end();) {
+        if (data->empty()) {
+            ThreadData* next = data->m_next;
+            data->detach();
+            threadDataToDelete.push_back(data);
+            data = next;
+        }
+        else {
+            data = data->m_next;
+        }
     }
 
     gcMemTop.store(newMemTop, std::memory_order_release);
     gcAllBlocks.clear();
-    gcMarkedBlocks.clear();
     gcScannedPtrs.clear();
+
+    return threadDataToDelete;
 }
 
 
@@ -595,8 +610,11 @@ void gcdelete(void* gcMem) noexcept {
 void collectGarbage() {
     stopThreads();
     mark();
-    sweep();
+    const std::vector<ThreadData*> threadDataToDelete = sweep();
     resumeThreads();
+    for (ThreadData* data : threadDataToDelete) {
+        delete data;
+    }
 }
 
 
@@ -632,7 +650,6 @@ Ptr<Foo> func(int depth) {
 
 static void stressTest() {
     static constexpr std::size_t MAX_DEPTH = 24;
-
     GC::init((sizeof(Block) + sizeof(Foo)) * ((1 << MAX_DEPTH)));
 
     auto dur = time_function([]() {
@@ -644,7 +661,11 @@ static void stressTest() {
 
 
 static void test() {
+    GC::init(65536);
+
     Ptr<Foo> foo1 = gcnew<Foo>();
+    gcnew<Foo>();
+    Ptr<Foo> foo2 = gcnew<Foo>();
     collectGarbage();
 }
 
