@@ -120,10 +120,10 @@ public:
     static void init(std::size_t memSize);
 
 private:
-    static void* beginMalloc(std::size_t size, void (*finalizer)(void*, void*), void*& t) noexcept;
+    static void* beginMalloc(std::size_t size, void (*finalizer)(void*, void*), void*& t);
     static void endMalloc(void* t) noexcept;
     static void free(void* mem, void* t) noexcept;
-    template <class T, class... Args> friend Ptr<T> gc_new(Args&&...);
+    template <class T, class... Args> friend Ptr<T> gcnew(Args&&...);
 };
 
 
@@ -134,18 +134,20 @@ template <class T> struct Finalizer {
 };
 
 
-template <class T, class... Args> Ptr<T> gc_new(Args&&... args) {
+template <class T, class... Args> Ptr<T> gcnew(Args&&... args) {
     void* t;
     void* mem = GC::beginMalloc(sizeof(T), &Finalizer<T>::finalize, t);
     try {
+        Ptr<T> ptr = (T*)mem;
         new (mem) T(std::forward<Args>(args)...);
+        GC::endMalloc(t);
+        return ptr;
     }
     catch (...) {
         GC::free(mem, t);
         throw;
     }
-    GC::endMalloc(t);
-    return (T*)mem;
+    return nullptr;
 }
 
 
@@ -185,6 +187,7 @@ using PtrList = DList<VoidPtr>;
 
 struct Block {
     PtrList ptrs;
+    std::size_t cycle;
     void* end;
     void(*finalizer)(void*, void*);
 };
@@ -281,11 +284,11 @@ VoidPtr& VoidPtr::operator = (VoidPtr&& ptr) {
 }
 
 
-void* GC::beginMalloc(std::size_t size, void(*finalizer)(void*, void*), void*& t) noexcept {
+void* GC::beginMalloc(std::size_t size, void(*finalizer)(void*, void*), void*& t) {
     size += sizeof(Block);
     Block* block = allocateMemory(size);
-    if (!block) return nullptr;
     new (block) Block;
+    block->cycle = 0;
     block->end = (char*)block + size;
     block->finalizer = finalizer;
     t = thread.ptrs;
@@ -330,7 +333,7 @@ struct Foo
 
 
 Ptr<Foo> func(int depth) {
-    Ptr<Foo> foo = gc_new<Foo>();
+    Ptr<Foo> foo = gcnew<Foo>();
     if (depth > 1)
     {
         foo->left = func(depth - 1);
