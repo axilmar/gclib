@@ -1,5 +1,6 @@
 #include <mutex>
 #include <shared_mutex>
+#include <atomic>
 #include <type_traits>
 
 
@@ -13,10 +14,27 @@ public:
 };
 
 
+class Mutex {
+public:
+    bool try_lock();
+
+    void lock();
+
+    void unlock();
+
+    void unlockNotifyOne();
+
+private:
+    std::atomic<bool> m_flag{ false };
+    std::condition_variable m_cond;
+};
+
+
 //using MutexType = std::mutex;
 //using MutexType = std::recursive_mutex;
 //using MutexType = std::shared_mutex;
-using MutexType = NoMutex;
+//using MutexType = NoMutex;
+using MutexType = Mutex;
 
 
 class VoidPtr {
@@ -62,11 +80,11 @@ public:
     Ptr(Ptr&& ptr) : VoidPtr(std::move(ptr)) {
     }
 
-    template <class U, typename = std::enable_if_t<std::is_base_of<T, U>, int>>
+    template <class U, typename = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     Ptr(const Ptr<U>& ptr) : VoidPtr(ptr) {
     }
 
-    template <class U, typename = std::enable_if_t<std::is_base_of<T, U>, int>>
+    template <class U, typename = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     Ptr(Ptr<U>&& ptr) : VoidPtr(std::move(ptr)) {
     }
 
@@ -85,13 +103,13 @@ public:
         return *this;
     }
 
-    template <class U, typename = std::enable_if_t<std::is_base_of<T, U>, int>>
+    template <class U, typename = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     Ptr& operator = (const Ptr<U>& ptr) {
         VoidPtr::operator = (ptr);
         return *this;
     }
 
-    template <class U, typename = std::enable_if_t<std::is_base_of<T, U>, int>>
+    template <class U, typename = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     Ptr& operator = (Ptr<U>&& ptr) {
         VoidPtr::operator = (std::move(ptr));
         return *this;
@@ -224,6 +242,34 @@ static Block* allocateMemory(std::size_t size) {
 
     //TODO
     throw 0;
+}
+
+
+bool Mutex::try_lock() {
+    bool prev = false;
+    return m_flag.compare_exchange_strong(prev, true, std::memory_order_acquire, std::memory_order_relaxed);
+}
+
+
+void Mutex::lock() {
+    bool prev = false;
+    if (!m_flag.compare_exchange_strong(prev, true, std::memory_order_acquire, std::memory_order_relaxed)) {
+        std::mutex mutex;
+        std::unique_lock lock(mutex);
+        m_cond.wait(lock);
+        return;
+    }
+}
+
+
+void Mutex::unlock() {
+    m_flag.store(false, std::memory_order_release);
+}
+
+
+void Mutex::unlockNotifyOne() {
+    unlock();
+    m_cond.notify_one();
 }
 
 
