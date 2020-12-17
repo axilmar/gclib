@@ -799,7 +799,7 @@ static void test4() {
 
         for (std::thread& thread : threads) {
             thread = std::thread{ []() {
-                for (int i = 0; i < 100'000; ++i) {
+                for (int i = 0; i < 1'000'000; ++i) {
                     Ptr<Foo> foo1 = gcnew<Foo>();
                 }
             }};
@@ -817,7 +817,7 @@ static void test4() {
 
 
 int main() {
-    test();
+    test4();
     system("pause");
     return 0;
 }
