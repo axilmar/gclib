@@ -285,6 +285,7 @@ static thread_local Thread gcThread;
 static char* gcMem{ nullptr };
 static char* gcMemEnd{ nullptr };
 static std::atomic<char*> gcMemTop{ nullptr };
+static std::atomic<char*> gcMemTopGood{ nullptr };
 static std::atomic<bool> gcFlag{false};
 static std::mutex gcMutex;
 static std::condition_variable gcWaitCollectionCond;
@@ -293,7 +294,8 @@ static DList<ThreadData> gcThreadData;
 static Mutex gcPtrMutex;
 static PtrList gcPtrs;
 static std::vector<Block*> gcAllBlocks;
-static std::vector<std::pair<char**, Block*>> gcScannedPtrs;
+static std::vector<Block*> gcMarkedBlocks;
+static std::vector<std::pair<char**, Block*>> gcDirtyPtrs;
 
 
 Thread::Thread() {
@@ -325,14 +327,14 @@ static void threadWaitGC(std::condition_variable& cond) {
 
 
 static char* allocateMemoryHelper(std::size_t size) {
-    if (gcFlag.load(std::memory_order_acquire)) {
-        threadWaitGC(gcWaitCollectionCond);
-    }
-
     char* res = gcMemTop.fetch_add(size, std::memory_order_acq_rel);
     char* end = res + size;
 
     if (end <= gcMemEnd) {
+        gcMemTopGood.store(res, std::memory_order_release);
+        if (gcFlag.load(std::memory_order_acquire)) {
+            threadWaitGC(gcWaitCollectionCond);
+        }
         return res;
     }
 
@@ -391,7 +393,7 @@ static void resumeThreads() noexcept {
 
 
 static void getAllBlocks() noexcept {
-    char* memTop = gcMemTop.load(std::memory_order_acquire);
+    char* memTop = gcMemTopGood.load(std::memory_order_acquire);
     for (Block* block = (Block*)gcMem; block < (Block*)memTop; block = (Block*)block->end) {
         gcAllBlocks.push_back(block);
     }
@@ -405,28 +407,41 @@ static Block* findBlock(void* addr) noexcept {
 }
 
 
-static void scan(const PtrList& ptrs) noexcept;
+static void scan(PTR* ptr);
+
+
+template <class T> static void addDirtyPtr(T*& ptr, Block* block) {
+    gcDirtyPtrs.emplace_back((char**)&ptr, block);
+}
 
 
 static void mark(Block* block) noexcept {
     if (block->newAddr == MARKED) return;
     block->newAddr = MARKED;
-    scan(block->ptrs);
-}
-
-
-static void scan(PTR *ptr) {
-    if (ptr->m_value >= gcMem && ptr->m_value < gcMemEnd) {
-        Block* const block = findBlock(ptr->m_value);
-        mark(block);
-        gcScannedPtrs.emplace_back(&ptr->m_value, block);
+    gcMarkedBlocks.push_back(block);
+    addDirtyPtr(block->ptrs.m_prev, block);
+    addDirtyPtr(block->ptrs.m_next, block);
+    for (PTR* ptr = (PTR*)block->ptrs.first(); ptr != block->ptrs.end(); ptr = (PTR*)((PTR*)ptr)->m_next) {
+        addDirtyPtr(ptr->m_prev, block);
+        addDirtyPtr(ptr->m_next, block);
+        scan(ptr);
     }
 }
 
 
+static void scan(PTR* ptr) {
+    if (ptr->m_value >= gcMem && ptr->m_value < gcMemEnd) {
+        Block* const block = findBlock(ptr->m_value);
+        mark(block);
+        addDirtyPtr(ptr->m_value, block);
+    }
+
+}
+
+
 static void scan(const PtrList& ptrs) noexcept {
-    for (VoidPtr* ptr = ptrs.first(); ptr != ptrs.end(); ptr = ((DNode<VoidPtr>*)ptr)->m_next) {
-        scan((PTR*)ptr);
+    for (PTR* ptr = (PTR*)ptrs.first(); ptr != ptrs.end(); ptr = (PTR*)((PTR*)ptr)->m_next) {
+        scan(ptr);
     }
 }
 
@@ -449,30 +464,52 @@ static void finalize(Block* block) {
 }
 
 
-static std::vector<ThreadData*> sweep() noexcept {
-    char *newMemTop = gcMem;
-    
+static void computeNewAddresses() {
+    std::sort(gcMarkedBlocks.begin(), gcMarkedBlocks.end());
+    char *newMemTop = gcMem;    
+    for (Block* block : gcMarkedBlocks) {
+        block->newAddr = newMemTop;
+        const std::size_t blockSize = block->end - (char*)block;
+        newMemTop += blockSize;
+    }
+    gcMemTop.store(newMemTop, std::memory_order_release);
+}
+
+
+static void adjustPtr(char*& ptr, Block* block) {
+    char* const oldPtrValue = (char*)ptr;
+    const std::size_t offset = oldPtrValue - (char*)block;
+    char* const newPtrValue = block->newAddr + offset;
+    (char*&)ptr = newPtrValue;
+}
+
+
+static void adjustPtrs() {
+    for (const auto& p : gcDirtyPtrs) {
+        adjustPtr(*p.first, (Block*)p.second);
+    }
+}
+
+
+static void clearMemory() {
     for (Block* block : gcAllBlocks) {
-        if (block->newAddr == MARKED) {
-            block->newAddr = UNMARKED;
-            block->newAddr = newMemTop;
-            const std::size_t blockSize = block->end - (char*)block;
-            newMemTop += blockSize;
-            block->end = newMemTop;
-            memmove(block->newAddr, block, blockSize);
-        }
-        else {
+        if (block->newAddr == UNMARKED) {
             finalize(block);
         }
+        else {
+            const std::size_t blockSize = block->end - (char*)block;
+            block = (Block*)memmove(block->newAddr, block, blockSize);
+            block->newAddr = UNMARKED;
+            block->end = (char*)block + blockSize;
+        }
     }
+    gcAllBlocks.clear();
+    gcMarkedBlocks.clear();
+    gcDirtyPtrs.clear();
+}
 
-    for (const auto& p : gcScannedPtrs) {
-        char* const oldPtrValue = *p.first;
-        const std::size_t offset = oldPtrValue - (char*)p.second;
-        char* const newPtrValue = p.second->newAddr + offset;
-        *p.first = newPtrValue;
-    }
 
+static std::vector<ThreadData*> sweepDeadThreads() {
     std::vector<ThreadData*> threadDataToDelete;
     for (ThreadData* data = gcThreadData.first(); data != gcThreadData.end();) {
         if (data->empty()) {
@@ -485,12 +522,15 @@ static std::vector<ThreadData*> sweep() noexcept {
             data = data->m_next;
         }
     }
-
-    gcMemTop.store(newMemTop, std::memory_order_release);
-    gcAllBlocks.clear();
-    gcScannedPtrs.clear();
-
     return threadDataToDelete;
+}
+
+
+static std::vector<ThreadData*> sweep() noexcept {
+    computeNewAddresses();
+    adjustPtrs();
+    clearMemory();
+    return sweepDeadThreads();
 }
 
 
@@ -693,7 +733,7 @@ static void stressTest() {
 static void test() {
     GC::init(65536);
 
-    Ptr<Foo> foo1 = gcnew<Foo>();
+    //Ptr<Foo> foo1 = gcnew<Foo>();
     gcnew<Foo>();
     Ptr<Foo> foo2 = gcnew<Foo>();
     collectGarbage();
@@ -755,7 +795,7 @@ static void test4() {
 
     double dur = time_function([]() {
 
-        std::vector<std::thread> threads(2);
+        std::vector<std::thread> threads(1);
 
         for (std::thread& thread : threads) {
             thread = std::thread{ []() {
@@ -777,7 +817,7 @@ static void test4() {
 
 
 int main() {
-    test4();
+    test();
     system("pause");
     return 0;
 }
