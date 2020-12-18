@@ -13,14 +13,14 @@ namespace gclib {
 
     //The copy constructor.
     StaticVoidPtr::StaticVoidPtr(const StaticVoidPtr& ptr) {
-        std::lock_guard lock(Thread::thisThread().mutex);
+        std::lock_guard lock(Thread::instance().mutex);
         m_value = ptr.m_value;
     }
 
 
     //The move constructor.
     StaticVoidPtr::StaticVoidPtr(StaticVoidPtr&& ptr) {
-        std::lock_guard lock(Thread::thisThread().mutex);
+        std::lock_guard lock(Thread::instance().mutex);
         m_value = ptr.m_value;
         ptr.m_value = nullptr;
     }

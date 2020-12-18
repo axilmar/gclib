@@ -19,7 +19,7 @@ namespace gclib {
     /**
         Data that may persist after the thread terminates.
      */
-    class ThreadData {
+    class ThreadData : public DNode<ThreadData> {
     public:
         /**
             Mutex used for synchronizing threads and the collector.
@@ -30,13 +30,21 @@ namespace gclib {
             list of pointers.
          */
         VoidPtrList ptrs;
+
+        /**
+            Returns true if the data are empty.
+            @return true if the data are empty.
+         */
+        bool empty() const noexcept {
+            return ptrs.empty();
+        }
     };
 
 
     /**
         Class that holds the current thread gc data.
      */
-    class Thread {
+    class Thread : public DNode<Thread> {
     public:
         /**
             Data that may persist after the thread terminates.
@@ -54,10 +62,15 @@ namespace gclib {
         VoidPtrList &ptrs{ data->ptrs };
 
         /**
+            Mutex used for memory allocation.
+         */
+        Mutex mallocMutex;
+
+        /**
             Returns the current thread.
             @return the current thread.
          */
-        static Thread& thisThread() noexcept;
+        static Thread& instance() noexcept;
 
         /**
             Adds this thread to the collector.

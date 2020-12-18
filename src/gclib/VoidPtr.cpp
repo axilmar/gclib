@@ -6,27 +6,27 @@ namespace gclib {
 
 
     //The default constructor.
-    VoidPtr::VoidPtr(void* value) : m_mutex(Thread::thisThread().mutex) {
+    VoidPtr::VoidPtr(void* value) : m_mutex(Thread::instance().mutex) {
         m_value = value;
         std::lock_guard lock(m_mutex);
-        Thread::thisThread().ptrs.append(this);
+        Thread::instance().ptrs.append(this);
     }
 
 
     //The copy constructor.
-    VoidPtr::VoidPtr(const VoidPtr& ptr) : m_mutex(Thread::thisThread().mutex) {
+    VoidPtr::VoidPtr(const VoidPtr& ptr) : m_mutex(Thread::instance().mutex) {
         std::lock_guard lock(m_mutex);
         m_value = ptr.m_value;
-        Thread::thisThread().ptrs.append(this);
+        Thread::instance().ptrs.append(this);
     }
 
 
     //The move constructor.
-    VoidPtr::VoidPtr(VoidPtr&& ptr) : m_mutex(Thread::thisThread().mutex) {
+    VoidPtr::VoidPtr(VoidPtr&& ptr) : m_mutex(Thread::instance().mutex) {
         std::lock_guard lock(m_mutex);
         m_value = ptr.m_value;
         ptr.m_value = nullptr;
-        Thread::thisThread().ptrs.append(this);
+        Thread::instance().ptrs.append(this);
     }
 
 

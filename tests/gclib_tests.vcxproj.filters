@@ -23,6 +23,9 @@
     <ClCompile Include="..\src\gclib\GC.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\make.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -70,5 +73,20 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gclib.hpp" />
+    <ClInclude Include="..\include\gclib\make.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\IObjectManager.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\IPtrManager.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\ObjectManager.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\OutOfMemoryException.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

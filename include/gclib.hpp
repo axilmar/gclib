@@ -3,8 +3,8 @@
 
 
 #include "gclib/GC.hpp"
-#include "gclib/Ptr.hpp"
 #include "gclib/StaticPtr.hpp"
+#include "gclib/make.hpp"
 
 
 #endif //GCLIB_HPP

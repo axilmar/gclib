@@ -15,11 +15,16 @@ namespace gclib {
     public:
         /**
             Initializes the collector.
-            @param heapSize heap size, in bytes.
+            @param heapSize heap size, in bytes; by default, its 256 MB.
             @exception std::logic_error thrown if the gc is already initialized.
             @exception std::invalid_argument thrown if the heap size is too small (i.e. less than 256 bytes).
          */
         static void initialize(const std::size_t heapSize = 268'435'456);
+
+        /**
+            Collects garbage.
+         */
+        static void collectGarbage();
     };
 
 
