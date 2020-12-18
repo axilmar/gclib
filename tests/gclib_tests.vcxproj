@@ -27,7 +27,24 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp" />
+    <ClCompile Include="..\src\gclib\Mutex.cpp" />
+    <ClCompile Include="..\src\gclib\StaticVoidPtr.cpp" />
+    <ClCompile Include="..\src\gclib\Thread.cpp" />
+    <ClCompile Include="..\src\gclib\VoidPtr.cpp" />
     <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\gclib\DList.hpp" />
+    <ClInclude Include="..\include\gclib\DNode.hpp" />
+    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp" />
+    <ClInclude Include="..\include\gclib\Ptr.hpp" />
+    <ClInclude Include="..\include\gclib\StaticPtr.hpp" />
+    <ClInclude Include="..\include\gclib\StaticVoidPtr.hpp" />
+    <ClInclude Include="..\include\gclib\TypedPtr.hpp" />
+    <ClInclude Include="..\include\gclib\VoidPtr.hpp" />
+    <ClInclude Include="..\src\gclib\Mutex.hpp" />
+    <ClInclude Include="..\src\gclib\Thread.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
