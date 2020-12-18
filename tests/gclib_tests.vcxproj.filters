@@ -17,6 +17,12 @@
     <ClCompile Include="..\src\gclib\StaticVoidPtr.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\Collector.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\GC.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -57,5 +63,12 @@
     <ClInclude Include="..\include\gclib\StaticPtr.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\gclib\Collector.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GC.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib.hpp" />
   </ItemGroup>
 </Project>
