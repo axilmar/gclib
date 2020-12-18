@@ -6,6 +6,7 @@
 #include <atomic>
 #include "gclib/DList.hpp"
 #include "gclib/IObjectManager.hpp"
+#include "ExecMutex.hpp"
 
 
 namespace gclib {
@@ -45,6 +46,16 @@ namespace gclib {
             List of thread data from terminated threads.
          */
         DList<class ThreadData> threadData;
+
+        /**
+            Collection execution mutex.
+         */
+        ExecMutex collectionMutex;
+
+        /**
+            all blocks are gathered here for quick finding of objects using binary search.
+         */
+        std::vector<class Block*> allBlocks;
 
         /**
             Deletes all objects and frees the heap memory.

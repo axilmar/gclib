@@ -29,6 +29,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp" />
     <ClCompile Include="..\src\gclib\Collector.cpp" />
+    <ClCompile Include="..\src\gclib\ExecMutex.cpp" />
     <ClCompile Include="..\src\gclib\GC.cpp" />
     <ClCompile Include="..\src\gclib\make.cpp" />
     <ClCompile Include="..\src\gclib\Mutex.cpp" />
@@ -54,6 +55,7 @@
     <ClInclude Include="..\include\gclib\TypedPtr.hpp" />
     <ClInclude Include="..\include\gclib\VoidPtr.hpp" />
     <ClInclude Include="..\src\gclib\Collector.hpp" />
+    <ClInclude Include="..\src\gclib\ExecMutex.hpp" />
     <ClInclude Include="..\src\gclib\Mutex.hpp" />
     <ClInclude Include="..\src\gclib\Thread.hpp" />
   </ItemGroup>

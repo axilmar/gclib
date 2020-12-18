@@ -26,6 +26,9 @@
     <ClCompile Include="..\src\gclib\make.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\ExecMutex.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -87,6 +90,9 @@
     </ClInclude>
     <ClInclude Include="..\include\gclib\OutOfMemoryException.hpp">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\ExecMutex.hpp">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

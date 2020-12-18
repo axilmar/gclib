@@ -13,6 +13,8 @@ namespace gclib {
     //make private functions
     class MakePrivate {
     private:
+        //locks the collector while an object is constructed
+
         //allocates a memory block from the collector
         static void* allocate(const std::size_t size, IObjectManager* om);
 
@@ -35,11 +37,13 @@ namespace gclib {
     template <class T, class... Args> Ptr<T> make(Args&&... args) {
         static ObjectManager<T> om;
 
+        //while construction, there shall not be a collection,
+        //because during construction the pointer we have, i.e. 'this',
+        //is not relocatable
+        MakePrivate::Lock lock;
+
         //allocate memory
         void* mem = MakePrivate::allocate(sizeof(T), &om);
-
-        //keep the memory around
-        Ptr<T> ptr((T*)mem);
 
         //construct the object
         try {
@@ -54,7 +58,7 @@ namespace gclib {
         //set its status so as that the collector knows its valid
         MakePrivate::markValid(mem);
 
-        return ptr;
+        return result;
     }
 
 
