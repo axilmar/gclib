@@ -23,6 +23,14 @@ namespace gclib {
         }
 
         /**
+            Checks if the list is empty.
+            @return true if empty, false otherwise.
+         */
+        bool empty() const noexcept {
+            return m_head.m_prev == m_head.m_next;
+        }
+
+        /**
             Returns pointer to the first item.
             @return pointer to the first item.
          */

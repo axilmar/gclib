@@ -13,6 +13,7 @@ namespace gclib {
         Provided as a more lightweight alternative for member pointers.
      */
     class StaticVoidPtr : public BasicVoidPtr {
+    public:
     protected:
         /**
             The default constructor.

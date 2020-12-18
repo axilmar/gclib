@@ -4,6 +4,7 @@
 
 #include <type_traits>
 #include <stdexcept>
+#include "ObjectManager.hpp"
 
 
 namespace gclib {
