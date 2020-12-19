@@ -78,13 +78,13 @@ std::vector<Object3*> data3(MAX_OBJECTS);
 template <std::size_t BlockSize, std::size_t ChunkSize = 32> class ObjectMemoryPool {
 public:
     void* allocate() {
-        //if there are allocated chunks
+        //if there are available chunks
         if (m_availableChunks.notEmpty()) {
 
             //get the last chunk
             Chunk* const chunk = m_availableChunks.last();
 
-            //take a free block from the chunk
+            //take a free block from the chunk if there is one
             if (chunk->free < (char*)(chunk + 1) + (sizeof(Block) + BlockSize) * ChunkSize) {
                 Block* const block = getFreeBlock(chunk);
                 return block + 1;
@@ -95,7 +95,7 @@ public:
             return block + 1;
         }
 
-        //else if there are no allocated chunks, create a new one 
+        //else if there are no available chunks, create a new one 
         Chunk* const chunk = createChunk();
         Block* const block = getFreeBlock(chunk);
         return block + 1;
