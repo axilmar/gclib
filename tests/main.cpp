@@ -75,23 +75,23 @@ public:
 std::vector<Object3*> data3(MAX_OBJECTS);
 
 
-template <std::size_t BlockSize, std::size_t ChunkSize = 16> class MemoryPool {
+template <std::size_t BlockSize, std::size_t ChunkSize = 32> class ObjectMemoryPool {
 public:
     void* allocate() {
         //if there are allocated chunks
-        if (m_allocatedChunks.notEmpty()) {
+        if (m_availableChunks.notEmpty()) {
 
             //get the last chunk
-            Chunk* const chunk = m_allocatedChunks.last();
+            Chunk* const chunk = m_availableChunks.last();
 
-            //if it has deleted blocks, get a deleted block
-            if (chunk->deletedBlocks.notEmpty()) {
-                Block* const block = getDeletedBlock(chunk);
+            //take a free block from the chunk
+            if (chunk->free < (char*)(chunk + 1) + (sizeof(Block) + BlockSize) * ChunkSize) {
+                Block* const block = getFreeBlock(chunk);
                 return block + 1;
             }
 
-            //since it is in allocated chunks, it has free space
-            Block* const block = getFreeBlock(chunk);
+            //take a deleted block
+            Block* const block = getDeletedBlock(chunk);
             return block + 1;
         }
 
@@ -114,7 +114,7 @@ public:
             //if this is the first block to delete,
             //put the chunk back to the allocated chunks
             if (newAllocatedBlockCount == ChunkSize - 1) {
-                m_allocatedChunks.prepend(chunk);
+                m_availableChunks.append(chunk);
             }
         }
 
@@ -139,7 +139,7 @@ private:
         char* free;
     };
 
-    DList<Chunk> m_allocatedChunks;
+    DList<Chunk> m_availableChunks;
 
     void addAllocatedBlock(Chunk* chunk, Block* block) {
         chunk->allocatedBlocks.append(block);
@@ -169,13 +169,13 @@ private:
         Chunk* chunk = (Chunk*)::operator new(sizeof(Chunk) + blockAreaSize);
         new (chunk) Chunk;
         chunk->free = (char*)(chunk + 1);
-        m_allocatedChunks.append(chunk);
+        m_availableChunks.append(chunk);
         return chunk;
     }
 };
 
 
-MemoryPool<sizeof(Object3), 256> memPool3;
+ObjectMemoryPool<sizeof(Object3)> memPool3;
 
 
 void* Object3::operator new(std::size_t size) {
