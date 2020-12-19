@@ -165,8 +165,7 @@ private:
     }
 
     Chunk* createChunk() {
-        const std::size_t blockAreaSize = (sizeof(Block) + BlockSize) * ChunkSize;
-        Chunk* chunk = (Chunk*)::operator new(sizeof(Chunk) + blockAreaSize);
+        Chunk* chunk = (Chunk*)::operator new(sizeof(Chunk) + (sizeof(Block) + BlockSize) * ChunkSize);
         new (chunk) Chunk;
         chunk->free = (char*)(chunk + 1);
         m_availableChunks.append(chunk);
