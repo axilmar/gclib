@@ -31,6 +31,14 @@ namespace gclib {
         }
 
         /**
+            Checks if the list is not empty.
+            @return true if not empty, false otherwise.
+         */
+        bool notEmpty() const noexcept {
+            return m_head.m_prev != m_head.m_next;
+        }
+
+        /**
             Returns pointer to the first item.
             @return pointer to the first item.
          */
@@ -52,6 +60,19 @@ namespace gclib {
          */
         const void* end() const noexcept {
             return head();
+        }
+
+        /**
+            Prepends an item.
+            No provision is made to if the item belongs in another list.
+            @param item item to prepend.
+         */
+        void prepend(T* item) noexcept {
+            DNode<T>* const node = item;
+            node->m_prev = head();
+            node->m_next = m_head.m_next;
+            m_head.m_next->m_prev = item;
+            m_head.m_next = item;
         }
 
         /**

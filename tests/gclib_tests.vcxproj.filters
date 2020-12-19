@@ -2,33 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\Mutex.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\Thread.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\VoidPtr.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\StaticVoidPtr.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\Collector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\GC.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\make.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\ExecMutex.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -39,60 +12,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\gclib\DNode.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\gclib\DList.hpp">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp">
+    <ClInclude Include="..\include\gclib\DNode.hpp">
       <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\Mutex.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\Thread.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\VoidPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\TypedPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\Ptr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\StaticVoidPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\StaticPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\Collector.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\GC.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib.hpp" />
-    <ClInclude Include="..\include\gclib\make.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\IObjectManager.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\IPtrManager.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\ObjectManager.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\OutOfMemoryException.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\ExecMutex.hpp">
-      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

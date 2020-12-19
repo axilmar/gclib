@@ -27,37 +27,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp" />
-    <ClCompile Include="..\src\gclib\Collector.cpp" />
-    <ClCompile Include="..\src\gclib\ExecMutex.cpp" />
-    <ClCompile Include="..\src\gclib\GC.cpp" />
-    <ClCompile Include="..\src\gclib\make.cpp" />
-    <ClCompile Include="..\src\gclib\Mutex.cpp" />
-    <ClCompile Include="..\src\gclib\StaticVoidPtr.cpp" />
-    <ClCompile Include="..\src\gclib\Thread.cpp" />
-    <ClCompile Include="..\src\gclib\VoidPtr.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\gclib.hpp" />
     <ClInclude Include="..\include\gclib\DList.hpp" />
     <ClInclude Include="..\include\gclib\DNode.hpp" />
-    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp" />
-    <ClInclude Include="..\include\gclib\GC.hpp" />
-    <ClInclude Include="..\include\gclib\IObjectManager.hpp" />
-    <ClInclude Include="..\include\gclib\IPtrManager.hpp" />
-    <ClInclude Include="..\include\gclib\make.hpp" />
-    <ClInclude Include="..\include\gclib\ObjectManager.hpp" />
-    <ClInclude Include="..\include\gclib\OutOfMemoryException.hpp" />
-    <ClInclude Include="..\include\gclib\Ptr.hpp" />
-    <ClInclude Include="..\include\gclib\StaticPtr.hpp" />
-    <ClInclude Include="..\include\gclib\StaticVoidPtr.hpp" />
-    <ClInclude Include="..\include\gclib\TypedPtr.hpp" />
-    <ClInclude Include="..\include\gclib\VoidPtr.hpp" />
-    <ClInclude Include="..\src\gclib\Collector.hpp" />
-    <ClInclude Include="..\src\gclib\ExecMutex.hpp" />
-    <ClInclude Include="..\src\gclib\Mutex.hpp" />
-    <ClInclude Include="..\src\gclib\Thread.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -198,6 +172,7 @@
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>../include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -30,7 +30,6 @@ namespace gclib {
             return m_next;
         }
 
-    protected:
         /**
             Removes this node from its list.
          */
