@@ -18,5 +18,8 @@
     <ClInclude Include="..\include\gclib\DNode.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\gclib\MemoryPool.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
