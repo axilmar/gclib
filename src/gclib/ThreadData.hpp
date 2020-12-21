@@ -5,6 +5,7 @@
 #include "gclib/Mutex.hpp"
 #include "gclib/MemoryResource.hpp"
 #include "gclib/VoidPtr.hpp"
+#include "Block.hpp"
 
 
 namespace gclib {
@@ -16,7 +17,7 @@ namespace gclib {
         Mutex memoryMutex;
 
         //data are allocated from this resource
-        MemoryResource memoryResource;
+        MemoryResource memoryResource{sizeof(Block) + sizeof(void*)};
 
         //pointer mutex
         Mutex ptrMutex;

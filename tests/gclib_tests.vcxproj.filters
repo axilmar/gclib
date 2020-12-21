@@ -26,7 +26,6 @@
     <ClCompile Include="..\src\gclib\make.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="memory_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">

@@ -13,7 +13,7 @@ namespace gclib {
     struct Make {
     private:
         static VoidPtr allocate(const std::size_t size, IObjectManager* om);
-        static void deallocate(void* const mem);
+        template <class T, class... Args> friend VoidPtr make(Args&&...);
     };
 
 
@@ -24,11 +24,14 @@ namespace gclib {
             return new (mem) T(std::forward<Args>(args)...);
         }
         catch (...) {
-            Make::deallocate(std::move(mem));
+            dispose(mem);
             throw;
         }
         return nullptr;
     }
+
+
+    void dispose(const VoidPtr& ptr);
 
 
 } //namespace gclib

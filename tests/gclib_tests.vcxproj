@@ -36,7 +36,6 @@
     <ClCompile Include="..\src\gclib\ThreadData.cpp" />
     <ClCompile Include="..\src\gclib\VoidPtr.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="memory_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp" />

@@ -15,10 +15,10 @@ namespace gclib {
     }
 
 
-    void Make::deallocate(void* const mem) {
+    void dispose(const VoidPtr& ptr) {
         ThreadData& td = ThreadData::instance();
         std::lock_guard lock(td.memoryMutex);
-        Block* block = (Block*)mem - 1;
+        Block* block = (Block*)ptr.get() - 1;
         td.memoryResource.deallocate(block);
     }
 
