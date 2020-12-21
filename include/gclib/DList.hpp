@@ -2,6 +2,7 @@
 #define GCLIB_DLIST_HPP
 
 
+#include <cassert>
 #include "DNode.hpp"
 
 
@@ -33,6 +34,13 @@ namespace gclib {
          */
         DList(DList&& list) {
             move(std::move(list));
+        }
+
+        /**
+            Asserts that the list is empty.
+         */
+        ~DList() {
+            assert(empty());
         }
 
         /**

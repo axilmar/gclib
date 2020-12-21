@@ -35,6 +35,12 @@ namespace gclib {
         MemoryPool(MemoryPool&& mp);
 
         /**
+            Checks if the pool is empty. If not so, then throws an exception.
+            @exception std::runtime_error thrown if the pool is not empty.
+         */
+        ~MemoryPool();
+
+        /**
             The object cannot be copied.
          */
         MemoryPool& operator =(const MemoryPool&) = delete;
@@ -90,9 +96,9 @@ namespace gclib {
 
         //chunk header
         struct Chunk : DNode<Chunk> {
-            DList<Block> availableBlocks;
-            DList<Block> deletedBlocks;
+            DList<Block> allocatedBlocks;
             std::size_t allocatedBlockCount{ 0 };
+            DList<Block> deletedBlocks;
             char* free;
             char* end;
         };

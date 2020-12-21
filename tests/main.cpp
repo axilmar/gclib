@@ -84,7 +84,7 @@ void testObject2() {
 
 
 int main() {
-    testObject1();
+    testObject2();
     system("pause");
     return 0;
 }

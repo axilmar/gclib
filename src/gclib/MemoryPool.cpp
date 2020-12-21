@@ -35,6 +35,12 @@ namespace gclib {
     }
 
 
+    //Checks if the pool is empty. If not so, then throws an exception.
+    MemoryPool::~MemoryPool() {
+        forEach([](void*) { throw std::runtime_error("Memory pool not empty"); });
+    }
+
+
     //Allocates memory for a block.
     void* MemoryPool::allocate() {
         //if there are available chunks
@@ -93,7 +99,7 @@ namespace gclib {
     //if the chunk size is reached, the chunk becomes no longer available
     void MemoryPool::addAllocatedBlock(Chunk* chunk, Block* block) noexcept {
         //add block
-        chunk->availableBlocks.append(block);
+        chunk->allocatedBlocks.append(block);
         ++chunk->allocatedBlockCount;
 
         //if the chunk is full, move it to the full chunks

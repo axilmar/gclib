@@ -84,12 +84,14 @@ namespace gclib {
     }
 
 
+    //initializes a block and returns the block memory
     void* MemoryResource::initBlock(Block* const block, MemoryPool* const mp) noexcept {
         block->memoryPool = mp;
         return block + 1;
     }
 
 
+    //get memory pool from size
     MemoryPool& MemoryResource::getMemoryPool(const std::size_t size) noexcept {
         return m_memoryPools[size / m_blockIncrement];
     }
