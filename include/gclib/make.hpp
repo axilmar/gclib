@@ -13,13 +13,21 @@ namespace gclib {
     struct Make {
     private:
         static VoidPtr allocate(const std::size_t size, IObjectManager* om);
+        static void deallocate(void* const mem);
     };
 
 
     template <class T, class... Args> VoidPtr make(Args&&... args) {
         static ObjectManager<T> om;
         VoidPtr mem = Make::allocate(sizeof(T), &om);
-        return new (mem) T(std::forward<Args>(args)...);
+        try {
+            return new (mem) T(std::forward<Args>(args)...);
+        }
+        catch (...) {
+            Make::deallocate(std::move(mem));
+            throw;
+        }
+        return nullptr;
     }
 
 

@@ -15,4 +15,12 @@ namespace gclib {
     }
 
 
+    void Make::deallocate(void* const mem) {
+        ThreadData& td = ThreadData::instance();
+        std::lock_guard lock(td.memoryMutex);
+        Block* block = (Block*)mem - 1;
+        td.memoryResource.deallocate(block);
+    }
+
+
 } //namespace gclib
