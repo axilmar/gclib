@@ -3,7 +3,6 @@
 
 
 #include "DList.hpp"
-#include "Mutex.hpp"
 
 
 namespace gclib {
@@ -52,10 +51,25 @@ namespace gclib {
         MemoryPool& operator =(MemoryPool&&) = delete;
 
         /**
-            Optional mutex used for synchronized access.
+            Checks if empty.
+            @return true if empty, false otherwise.
          */
-        Mutex& mutex() noexcept {
-            return m_mutex;
+        bool empty() const noexcept;
+
+        /**
+            Returns the block size.
+            @return the block size.
+         */
+        std::size_t blockSize() const {
+            return m_blockSize;
+        }
+
+        /**
+            Returns the allocated size.
+            @return the allocated size (includes metadata size).
+         */
+        std::size_t allocSize() const {
+            return m_allocSize;
         }
 
         /**
@@ -111,9 +125,6 @@ namespace gclib {
             char* end;
         };
 
-        //mutex for optional synchronized access
-        Mutex m_mutex;
-
         //block size
         std::size_t m_blockSize;
 
@@ -128,6 +139,9 @@ namespace gclib {
 
         //list of chunks with some free blocks
         DList<Chunk> m_availableChunks;
+
+        //allocation size
+        std::size_t m_allocSize{ 0 };
 
         //adds a block to the allocated list;
         //if the chunk size is reached, the chunk becomes no longer available

@@ -37,7 +37,7 @@ namespace gclib {
         //create the memory pools
         const std::size_t memoryPoolCount = (maxBlockSize - minBlockSize) / blockIncrement;
         for (size_t count = 0; count < memoryPoolCount; ++count) {
-            m_memoryPools.emplace_back(minBlockSize + count * blockIncrement, chunkSize);
+            m_memoryPools.emplace_back(sizeof(Block) + minBlockSize + count * blockIncrement, chunkSize);
         }
     }
 
@@ -60,33 +60,50 @@ namespace gclib {
         //if size can be served by memory pool, use one
         if (roundedSize <= m_maxBlockSize) {
             MemoryPool& mp = getMemoryPool(size);
+            const std::size_t prevAllocSize = mp.allocSize();
             Block* const block = (Block*)mp.allocate();
+            m_allocSize += mp.allocSize() - prevAllocSize;
             return initBlock(block, &mp);
         }
 
         //size too large, allocate from the heap
-        Block* block = (Block*)::operator new(roundedSize);
-        return initBlock(block, nullptr);
+        const std::size_t totalSize = sizeof(LargeBlock) + roundedSize;
+        LargeBlock* block = (LargeBlock*)::operator new(totalSize);
+        m_allocSize += totalSize;
+        return initBlock(block, totalSize);
     }
 
 
     void MemoryResource::deallocate(void* const mem) {
         Block* const block = (Block*)mem - 1;
+        MemoryPool* const mp = block->memoryPool;
 
         //if block was allocated by memory pool, it is deallocated by a memory pool
-        if (block->memoryPool) {
+        if (mp) {
+            const std::size_t prevAllocSize = mp->allocSize();
             block->memoryPool->deallocate(block);
+            m_allocSize -= prevAllocSize - mp->allocSize();
             return;
         }
 
         //no memory pool was used; deallocate from the heap
-        ::operator delete(block);
+        LargeBlock* lb = (LargeBlock*)mem - 1;
+        m_allocSize -= lb->size;
+        ::operator delete(lb);
     }
 
 
     //initializes a block and returns the block memory
     void* MemoryResource::initBlock(Block* const block, MemoryPool* const mp) noexcept {
         block->memoryPool = mp;
+        return block + 1;
+    }
+
+
+    //initializes a large block and returns the block memory
+    void* MemoryResource::initBlock(LargeBlock* const block, const std::size_t size) noexcept {
+        block->memoryPool = nullptr;
+        block->size = size;
         return block + 1;
     }
 

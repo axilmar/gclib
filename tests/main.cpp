@@ -106,7 +106,7 @@ void testMutex() {
 
 int main() {
     //testObject2();
-    testMutex();
+    //testMutex();
     system("pause");
     return 0;
 }

@@ -41,6 +41,12 @@ namespace gclib {
     }
 
 
+    //Checks if empty.
+    bool MemoryPool::empty() const noexcept {
+        return m_availableChunks.empty() && m_fullChunks.empty();
+    }
+
+
     //Allocates memory for a block.
     void* MemoryPool::allocate() {
         //if there are available chunks
@@ -90,6 +96,7 @@ namespace gclib {
         //else if block count reached 0, then delete the chunk
         else {
             chunk->detach();
+            m_allocSize -= chunk->end - (char*)chunk;
             ::operator delete(chunk);
         }
     }
@@ -144,7 +151,9 @@ namespace gclib {
     //creates a chunk
     MemoryPool::Chunk* MemoryPool::createChunk() {
         //allocate the chunk from the heap
-        Chunk* chunk = (Chunk*)::operator new(sizeof(Chunk) + m_blockAreaSize);
+        const std::size_t totalSize = sizeof(Chunk) + m_blockAreaSize;
+        Chunk* chunk = (Chunk*)::operator new(totalSize);
+        m_allocSize += totalSize;
 
         //initialize the chunk
         new (chunk) Chunk;

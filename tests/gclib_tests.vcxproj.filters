@@ -11,6 +11,12 @@
     <ClCompile Include="..\src\gclib\Mutex.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\CollectorData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\ThreadData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -35,6 +41,12 @@
     </ClInclude>
     <ClInclude Include="..\include\gclib\Mutex.hpp">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\CollectorData.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\ThreadData.hpp">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

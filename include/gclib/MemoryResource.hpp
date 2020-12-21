@@ -55,11 +55,19 @@ namespace gclib {
         MemoryResource& operator =(MemoryResource&&) = delete;
 
         /**
-            Returns the array of memory pools used internally.
-            @return the array of memory pools used internally.
+            Checks if it is empty.
+            @return true if empty, false otherwise.
          */
-        std::vector<MemoryPool>& memoryPools() noexcept {
-            return m_memoryPools;
+        bool empty() const noexcept {
+            return m_allocSize == 0;
+        }
+
+        /**
+            Returns the allocated size.
+            @return the allocated size.
+         */
+        std::size_t allocSize() const noexcept {
+            return m_allocSize;
         }
 
         /**
@@ -81,13 +89,21 @@ namespace gclib {
             MemoryPool* memoryPool;
         };
 
+        struct LargeBlock : Block {
+            std::size_t size;
+        };
+
         std::size_t m_minBlockSize;
         std::size_t m_maxBlockSize;
         std::size_t m_blockIncrement;
         std::vector<MemoryPool> m_memoryPools;
+        std::size_t m_allocSize{ 0 };
 
         //initializes a block and returns the block memory
         static void* initBlock(Block* const block, MemoryPool* const mp) noexcept;
+
+        //initializes a large block and returns the block memory
+        static void* initBlock(LargeBlock* const block, const std::size_t size) noexcept;
 
         //get memory pool from size
         MemoryPool& getMemoryPool(const std::size_t size) noexcept;
