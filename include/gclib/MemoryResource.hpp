@@ -55,6 +55,14 @@ namespace gclib {
         MemoryResource& operator =(MemoryResource&&) = delete;
 
         /**
+            Returns the array of memory pools used internally.
+            @return the array of memory pools used internally.
+         */
+        std::vector<MemoryPool>& memoryPools() noexcept {
+            return m_memoryPools;
+        }
+
+        /**
             Allocates a memory block of the given size.
             @param size number of bytes to allocate; if it exceeds MaxBlockSize, then it is allocated from the heap,
                 else it is allocated from a memory pool.

@@ -3,6 +3,7 @@
 
 
 #include "DList.hpp"
+#include "Mutex.hpp"
 
 
 namespace gclib {
@@ -49,6 +50,13 @@ namespace gclib {
             The object cannot be moved after construction.
          */
         MemoryPool& operator =(MemoryPool&&) = delete;
+
+        /**
+            Optional mutex used for synchronized access.
+         */
+        Mutex& mutex() noexcept {
+            return m_mutex;
+        }
 
         /**
             Allocates memory for a block.
@@ -102,6 +110,9 @@ namespace gclib {
             char* free;
             char* end;
         };
+
+        //mutex for optional synchronized access
+        Mutex m_mutex;
 
         //block size
         std::size_t m_blockSize;

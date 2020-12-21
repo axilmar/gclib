@@ -40,6 +40,7 @@ void testObject1() {
 
 
 #include "gclib/MemoryResource.hpp"
+#include "gclib/Mutex.hpp"
 
 
 using namespace gclib;
@@ -55,14 +56,17 @@ public:
 
 MemoryResource mr;
 std::vector<Object2*> object2;
+Mutex mutex2;
 
 
 void* Object2::operator new(std::size_t size) {
+    std::lock_guard lock(mutex2);
     return mr.allocate(size);
 }
 
 
 void Object2::operator delete(void* mem) {
+    std::lock_guard lock(mutex2);
     mr.deallocate(mem);
 }
 
@@ -83,8 +87,26 @@ void testObject2() {
 }
 
 
+void testMutex() {
+    std::vector<Mutex> mutexes(1024);
+
+    double dur = timeFunction([&]() {
+        for (Mutex& m : mutexes) {
+            m.lock();
+        }
+        
+        for (Mutex& m : mutexes) {
+            m.unlock();
+        }
+    });
+    
+    std::cout << dur << " seconds\n";
+}
+
+
 int main() {
-    testObject2();
+    //testObject2();
+    testMutex();
     system("pause");
     return 0;
 }
