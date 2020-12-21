@@ -19,7 +19,34 @@ namespace gclib {
             Initializes the list so as that first == last == list.
          */
         DList() noexcept {
-            m_head.m_prev = m_head.m_next = head();
+            init();
+        }
+
+        /**
+            The object is not copyable.
+         */
+        DList(const DList&) = delete;
+
+        /**
+            Moves the contents of the given list to this list.
+            @param list list to move.
+         */
+        DList(DList&& list) {
+            move(std::move(list));
+        }
+
+        /**
+            The object is not copyable.
+         */
+        DList& operator = (const DList&) = delete;
+
+        /**
+            Moves the contents of the given list to this list.
+            @param list list to move.
+         */
+        DList& operator = (DList&& list) {
+            move(std::move(list));
+            return *this;
         }
 
         /**
@@ -63,6 +90,16 @@ namespace gclib {
         }
 
         /**
+            Iterates the list, passing each item to the given function.
+            @param func function to invoke.
+         */
+        template <class F> void forEach(F&& func) const {
+            for (T* object = first(); object != end(); object = object->next()) {
+                func(object);
+            }
+        }
+
+        /**
             Prepends an item.
             No provision is made to if the item belongs in another list.
             @param item item to prepend.
@@ -100,6 +137,24 @@ namespace gclib {
         //returns the head item as T*
         T* head() noexcept {
             return static_cast<T*>(&m_head);
+        }
+
+        //initializes the list
+        void init() {
+            m_head.m_prev = m_head.m_next = head();
+        }
+
+        //moves the given list to this
+        void move(DList&& list) {
+            if (list.empty()) {
+                init();
+            }
+            else {
+                list.m_head.m_next->m_prev = head();
+                list.m_head.m_prev->m_next = head();
+                m_head.m_next = list.m_head.m_next;
+                m_head.m_prev = list.m_head.m_prev;
+            }
         }
     };
 

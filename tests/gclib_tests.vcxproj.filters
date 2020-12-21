@@ -2,6 +2,12 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\src\gclib\MemoryPool.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\MemoryResource.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -19,6 +25,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gclib\MemoryPool.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\MemoryResource.hpp">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

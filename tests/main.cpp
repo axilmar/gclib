@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <vector>
 
 
 template <class F> double timeFunction(F&& func) {
@@ -10,76 +11,80 @@ template <class F> double timeFunction(F&& func) {
 }
 
 
-#include "gclib/MemoryPool.hpp"
+const std::size_t MaxObject = 5'000'000;
 
 
-namespace gclib {
+class Object1 {
+public:
+    char data[64];
+};
 
 
-    template <std::size_t MinBlockSize = sizeof(void*)*2,
-        std::size_t MaxBlockSize = 4096,
-        std::size_t BlockIncrement = sizeof(void*) * 2,
-        std::size_t ChunkSize = 32>
-        class MemoryResource {
-        public:
-            static_assert(MinBlockSize > 0, "MinBlockSize should be greater than 0");
-            static_assert(MinBlockSize >= BlockIncrement, "MinBlockSize should be greater than or equal to BlockIncrement");
-            static_assert((MinBlockSize & (sizeof(void*) - 1)) == 0, "MinBlockSize should have pointer alignment");
-            static_assert((MaxBlockSize & (sizeof(void*) - 1)) == 0, "MaxBlockSize should have pointer alignment");
-            static_assert(MinBlockSize <= MaxBlockSize, "MinBlockSize should be less than or equal to MaxBlockSize");
-            static_assert((BlockIncrement & (sizeof(void*) - 1)) == 0, "BlockIncrement should have pointer alignment");
-
-            MemoryResource() {
-                initialize();
-            }
-
-            void* allocate(const std::size_t size) {
-                const std::size_t roundedSize = (size + BlockIncrement - 1) & ~(BlockIncrement - 1);
-                if (roundedSize <= MaxBlockSize) {
-                    Block* const block = (Block*)m_memoryPoolArray.allocate(roundedSize);
-                    return initBlock(block, roundedSize);
-                }
-                Block* block = (Block*)::operator new(roundedSize);
-                return initBlock(block, roundedSize);
-            }
-
-            void deallocate(void* const mem) {
-                Block* const block = (Block*)mem - 1;
-                if (block->size <= MaxBlockSize) {
-                    m_memoryPoolArray.deallocate(block->size, block);
-                    return;
-                }
-                ::operator delete(block);
-            }
-
-        private:
-            struct Block {
-                std::size_t size;
-            };
-
-            static constexpr std::size_t MemoryPoolCount = (MaxBlockSize - MinBlockSize) / BlockIncrement;
-
-            char m_data[sizeof(MemoryPool<4>) * MemoryPoolCount];
-
-            void initialize() {
-                for (std::size_t index = 0; index < MemoryPoolCount; ++index) {
-                    void* poolMem = m_data + index * sizeof(MemoryPool<4>);
-                    new (poolMem) MemoryPool<4>;
-                }
-            }
-    };
+std::vector<Object1*> object1;
 
 
-} //namespace gclib
+void testObject1() {
+    object1.resize(MaxObject);
+
+    double dur = timeFunction([]() {
+        for (size_t i = 0; i < MaxObject; ++i) {
+            object1[i] = new Object1;
+        }
+        for (size_t i = 0; i < MaxObject; ++i) {
+            delete object1[i];
+        }
+    });
+
+    std::cout << dur << " seconds\n";
+}
+
+
+#include "gclib/MemoryResource.hpp"
 
 
 using namespace gclib;
 
 
-int main() {
-    MemoryResource<> mr;
-    void* mem = mr.allocate(1);
+class Object2 {
+public:
+    char data[64];
+    void* operator new(std::size_t size);
+    void operator delete(void* mem);
+};
+
+
+MemoryResource mr;
+std::vector<Object2*> object2;
+
+
+void* Object2::operator new(std::size_t size) {
+    return mr.allocate(size);
+}
+
+
+void Object2::operator delete(void* mem) {
     mr.deallocate(mem);
+}
+
+
+void testObject2() {
+    object2.resize(MaxObject);
+
+    double dur = timeFunction([]() {
+        for (size_t i = 0; i < MaxObject; ++i) {
+            object2[i] = new Object2;
+        }
+        for (size_t i = 0; i < MaxObject; ++i) {
+            delete object2[i];
+        }
+    });
+
+    std::cout << dur << " seconds\n";
+}
+
+
+int main() {
+    testObject1();
     system("pause");
     return 0;
 }
