@@ -1,5 +1,5 @@
 #include "ThreadData.hpp"
-#include "CollectorData.hpp"
+#include "GlobalData.hpp"
 
 
 namespace gclib {
@@ -21,7 +21,7 @@ namespace gclib {
 
     //adds the data to the collector.
     Thread::Thread() {
-        CollectorData& cd = CollectorData::instance();
+        GlobalData& cd = GlobalData::instance();
         std::lock_guard lock(cd.mutex);
         cd.activeThreadData.append(&ThreadData::instance());
     }
@@ -29,7 +29,7 @@ namespace gclib {
 
     //removes the data from the collector or moves them to the terminated data if not empty.
     Thread::~Thread() {
-        CollectorData& cd = CollectorData::instance();
+        GlobalData& cd = GlobalData::instance();
         ThreadData& td = ThreadData::instance();
         std::lock_guard lock(cd.mutex);
         td.detach();

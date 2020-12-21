@@ -1,5 +1,5 @@
-#ifndef GCLIB_COLLECTORDATA_HPP
-#define GCLIB_COLLECTORDATA_HPP
+#ifndef GCLIB_GLOBALDATA_HPP
+#define GCLIB_GLOBALDATA_HPP
 
 
 #include "gclib/DList.hpp"
@@ -11,7 +11,7 @@ namespace gclib {
 
 
     //main struct with global data
-    struct CollectorData {
+    struct GlobalData {
         //global mutex
         Mutex mutex;
 
@@ -22,11 +22,11 @@ namespace gclib {
         DList<ThreadData> terminatedThreadData;
 
         //returns the one and only instance
-        static CollectorData& instance();
+        static GlobalData& instance();
     };
 
 
 } //namespace gclib
 
 
-#endif //GCLIB_COLLECTORDATA_HPP
+#endif //GCLIB_GLOBALDATA_HPP

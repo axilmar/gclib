@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\gclib\CollectorData.cpp" />
+    <ClCompile Include="..\src\gclib\GlobalData.cpp" />
     <ClCompile Include="..\src\gclib\MemoryPool.cpp" />
     <ClCompile Include="..\src\gclib\MemoryResource.cpp" />
     <ClCompile Include="..\src\gclib\Mutex.cpp" />
@@ -40,7 +40,7 @@
     <ClInclude Include="..\include\gclib\MemoryPool.hpp" />
     <ClInclude Include="..\include\gclib\MemoryResource.hpp" />
     <ClInclude Include="..\include\gclib\Mutex.hpp" />
-    <ClInclude Include="..\src\gclib\CollectorData.hpp" />
+    <ClInclude Include="..\src\gclib\GlobalData.hpp" />
     <ClInclude Include="..\src\gclib\ThreadData.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

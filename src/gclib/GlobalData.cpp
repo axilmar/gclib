@@ -1,12 +1,12 @@
-#include "CollectorData.hpp"
+#include "GlobalData.hpp"
 
 
 namespace gclib {
 
 
     //returns the one and only instance
-    CollectorData& CollectorData::instance() {
-        static CollectorData cd;
+    GlobalData& GlobalData::instance() {
+        static GlobalData cd;
         return cd;
     }
 

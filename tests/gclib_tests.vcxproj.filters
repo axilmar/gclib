@@ -11,10 +11,10 @@
     <ClCompile Include="..\src\gclib\Mutex.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gclib\CollectorData.cpp">
+    <ClCompile Include="..\src\gclib\ThreadData.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gclib\ThreadData.cpp">
+    <ClCompile Include="..\src\gclib\GlobalData.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -42,10 +42,10 @@
     <ClInclude Include="..\include\gclib\Mutex.hpp">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\gclib\CollectorData.hpp">
+    <ClInclude Include="..\src\gclib\ThreadData.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\gclib\ThreadData.hpp">
+    <ClInclude Include="..\src\gclib\GlobalData.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
