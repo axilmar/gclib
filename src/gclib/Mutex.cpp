@@ -6,7 +6,7 @@ namespace gclib {
 
 
     //Locks this thread by spinning over a variable.
-    void Mutex::lock() {
+    void Mutex::lock() noexcept {
         std::mutex waitMutex;
 
         for (;;) {
@@ -28,13 +28,13 @@ namespace gclib {
 
 
     //Unlocks the mutex.
-    void Mutex::unlock() {
+    void Mutex::unlock() noexcept {
         m_lock.store(false, std::memory_order_release);
     }
 
 
     //Locks the mutex and notifies the other threads to sleep.
-    void Mutex::lockNotify() {
+    void Mutex::lockNotify() noexcept {
         std::mutex waitMutex;
 
         //try to lock the mutex
@@ -60,7 +60,7 @@ namespace gclib {
 
 
     //Unlocks the mutex and notifies the other threads to wake up.
-    void Mutex::unlockNotify() {
+    void Mutex::unlockNotify() noexcept {
         m_wait.store(false, std::memory_order_release);
         m_lock.store(false, std::memory_order_release);
         m_waitCondition.notify_all();

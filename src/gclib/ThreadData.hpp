@@ -4,6 +4,7 @@
 
 #include "gclib/Mutex.hpp"
 #include "gclib/MemoryResource.hpp"
+#include "gclib/VoidPtr.hpp"
 
 
 namespace gclib {
@@ -16,6 +17,12 @@ namespace gclib {
 
         //data are allocated from this resource
         MemoryResource memoryResource;
+
+        //pointer mutex
+        Mutex ptrMutex;
+
+        //pointers
+        DList<VoidPtr> ptrs;
 
         //check if empty
         bool empty() const noexcept;

@@ -19,22 +19,22 @@ namespace gclib {
             Locks this thread by spinning over a variable.
             It blocks if requested by another thread while spinning.
          */
-        void lock();
+        void lock() noexcept;
 
         /**
             Unlocks the mutex.
          */
-        void unlock();
+        void unlock() noexcept;
 
         /**
             Locks the mutex and notifies the other threads to wait.
          */
-        void lockNotify();
+        void lockNotify() noexcept;
 
         /**
             Unlocks the mutex and notifies the other threads to wake up.
          */
-        void unlockNotify();
+        void unlockNotify() noexcept;
 
     private:
         std::atomic<bool> m_lock{ false };

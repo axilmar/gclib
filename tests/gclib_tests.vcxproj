@@ -27,19 +27,29 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp" />
     <ClCompile Include="..\src\gclib\GlobalData.cpp" />
+    <ClCompile Include="..\src\gclib\make.cpp" />
     <ClCompile Include="..\src\gclib\MemoryPool.cpp" />
     <ClCompile Include="..\src\gclib\MemoryResource.cpp" />
     <ClCompile Include="..\src\gclib\Mutex.cpp" />
     <ClCompile Include="..\src\gclib\ThreadData.cpp" />
+    <ClCompile Include="..\src\gclib\VoidPtr.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="memory_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp" />
     <ClInclude Include="..\include\gclib\DList.hpp" />
     <ClInclude Include="..\include\gclib\DNode.hpp" />
+    <ClInclude Include="..\include\gclib\IObjectManager.hpp" />
+    <ClInclude Include="..\include\gclib\make.hpp" />
     <ClInclude Include="..\include\gclib\MemoryPool.hpp" />
     <ClInclude Include="..\include\gclib\MemoryResource.hpp" />
     <ClInclude Include="..\include\gclib\Mutex.hpp" />
+    <ClInclude Include="..\include\gclib\ObjectManager.hpp" />
+    <ClInclude Include="..\include\gclib\VoidPtr.hpp" />
+    <ClInclude Include="..\src\gclib\Block.hpp" />
     <ClInclude Include="..\src\gclib\GlobalData.hpp" />
     <ClInclude Include="..\src\gclib\ThreadData.hpp" />
   </ItemGroup>

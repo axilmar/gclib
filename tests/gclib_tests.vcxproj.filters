@@ -17,6 +17,16 @@
     <ClCompile Include="..\src\gclib\GlobalData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\VoidPtr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\make.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="memory_tests.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -46,6 +56,24 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\gclib\GlobalData.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\make.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\VoidPtr.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\ObjectManager.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\IObjectManager.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\Block.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
