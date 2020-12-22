@@ -104,7 +104,7 @@ public:
     }
 
 private:
-    struct ThreadData& m_threadData;
+    struct ThreadData* m_threadData;
     GCList<GCObjectPtr> m_ptrs;
     const std::size_t m_size;
     std::size_t m_cycle{0};
@@ -158,7 +158,7 @@ public:
     }
 
 private:
-    std::recursive_mutex& m_ownerMutex;
+    std::recursive_mutex* m_ownerMutex;
     ValueType m_value;
     
     friend struct GCNode<GCObjectPtr>;
@@ -321,7 +321,7 @@ static struct Global {
     GCList<ThreadData> terminatedThreadData;
     std::size_t cycle{0};
     std::atomic<std::size_t> allocSize{0};
-    std::atomic<std::size_t> maxAllocSize{65536};
+    std::atomic<std::size_t> maxAllocSize{64*1024*1024};
 } global;
 
 
@@ -342,7 +342,7 @@ struct GCPriv {
         return obj;
     }
 
-    static ThreadData& threadData(const GCObject* const obj) noexcept {
+    static ThreadData*& threadData(GCObject* const obj) noexcept {
         return obj->m_threadData;
     }
 
@@ -352,6 +352,10 @@ struct GCPriv {
 
     static GCObject*& value(GCObjectPtr* const ptr) noexcept {
         return ptr->m_value;
+    }
+
+    static std::recursive_mutex*& ownerMutex(GCObjectPtr* const ptr) noexcept {
+        return ptr->m_ownerMutex;
     }
 };
 
@@ -400,7 +404,7 @@ static void mark(GCObject* obj) {
     if (!obj || GCPriv::cycle(obj) == global.cycle) return;
     GCPriv::cycle(obj) = global.cycle;
     GCPriv::node(obj)->detach();
-    GCPriv::threadData(obj).markedObjects.append(obj);
+    GCPriv::threadData(obj)->markedObjects.append(obj);
     global.allocSize.fetch_add(GCPriv::size(obj), std::memory_order::memory_order_relaxed);
     scan(GCPriv::ptrs(obj));
 }
@@ -446,12 +450,14 @@ static void sweep(GCList<GCObject>& unreachable, GCList<ThreadData>& dead) {
 
 static void resetPtrs(const GCList<GCObjectPtr>& ptrs) {
     for (GCObjectPtr* ptr = ptrs.first(); ptr != ptrs.end(); ptr = GCPriv::next(ptr)) {
+        GCPriv::ownerMutex(ptr) = nullptr;
         GCPriv::value(ptr) = nullptr;
     }
 }
 
 
 static void dispose(GCObject* obj) {
+    GCPriv::threadData(obj) = nullptr;
     resetPtrs(GCPriv::ptrs(obj));
     delete obj;
 }
@@ -480,7 +486,7 @@ static void countNewObject(const std::size_t size) {
 
 
 GCObject::GCObject() 
-    : m_threadData(*thread.data)
+    : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
     thread.data->objects.append(this);
@@ -488,7 +494,7 @@ GCObject::GCObject()
 
 
 GCObject::GCObject(const GCObject& object)
-    : m_threadData(*thread.data)
+    : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
     thread.data->objects.append(this);
@@ -496,7 +502,7 @@ GCObject::GCObject(const GCObject& object)
 
 
 GCObject::GCObject(GCObject&& object)
-    : m_threadData(*thread.data)
+    : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
     thread.data->objects.append(this);
@@ -505,27 +511,28 @@ GCObject::GCObject(GCObject&& object)
 
 GCObject::~GCObject()
 {
-    std::lock_guard lock(m_threadData.mutex);
+    if (!m_threadData) return;
+    std::lock_guard lock(m_threadData->mutex);
     detach();
 }
 
 
 GCObjectPtr::GCObjectPtr(GCObject &owner, ValueType const value) 
-    : m_ownerMutex(owner.m_threadData.mutex), m_value(value)
+    : m_ownerMutex(&owner.m_threadData->mutex), m_value(value)
 {
     owner.m_ptrs.append(this);
 }
 
 
 GCObjectPtr::GCObjectPtr(GCObject &owner, const GCObjectPtr& ptr) 
-    : m_ownerMutex(owner.m_threadData.mutex), m_value(ptr.m_value)
+    : m_ownerMutex(&owner.m_threadData->mutex), m_value(ptr.m_value)
 {
     owner.m_ptrs.append(this);
 }
 
 
 GCObjectPtr::GCObjectPtr(GCObject &owner, GCObjectPtr&& ptr)
-    : m_ownerMutex(owner.m_threadData.mutex), m_value(ptr.m_value)
+    : m_ownerMutex(&owner.m_threadData->mutex), m_value(ptr.m_value)
 {
     owner.m_ptrs.append(this);
     ptr.m_value = nullptr;
@@ -533,52 +540,53 @@ GCObjectPtr::GCObjectPtr(GCObject &owner, GCObjectPtr&& ptr)
 
 
 GCObjectPtr::GCObjectPtr(ValueType const value) 
-    : m_ownerMutex(thread.data->mutex), m_value(value)
+    : m_ownerMutex(&thread.data->mutex), m_value(value)
 {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     thread.data->ptrs.append(this);
 }
 
 
 GCObjectPtr::GCObjectPtr(const GCObjectPtr& ptr) 
-    : m_ownerMutex(thread.data->mutex), m_value(ptr.m_value)
+    : m_ownerMutex(&thread.data->mutex), m_value(ptr.m_value)
 {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     thread.data->ptrs.append(this);
 }
 
 
 GCObjectPtr::GCObjectPtr(GCObjectPtr&& ptr)
-    : m_ownerMutex(thread.data->mutex), m_value(ptr.m_value)
+    : m_ownerMutex(&thread.data->mutex), m_value(ptr.m_value)
 {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     thread.data->ptrs.append(this);
     ptr.m_value = nullptr;
 }
 
 
 GCObjectPtr::~GCObjectPtr() {
-    std::lock_guard lock(m_ownerMutex);
+    if (!m_ownerMutex) return;
+    std::lock_guard lock(*m_ownerMutex);
     detach();
 }
 
 
 GCObjectPtr& GCObjectPtr::operator = (ValueType const value) {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     m_value = value;
     return *this;
 }
 
 
 GCObjectPtr& GCObjectPtr::operator = (const GCObjectPtr& ptr) {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     m_value = ptr.m_value;
     return *this;
 }
 
 
 GCObjectPtr& GCObjectPtr::operator = (GCObjectPtr&& ptr) {
-    std::lock_guard lock(m_ownerMutex);
+    std::lock_guard lock(*m_ownerMutex);
     ValueType const temp = ptr.m_value;
     ptr.m_value = nullptr;
     m_value = temp;
