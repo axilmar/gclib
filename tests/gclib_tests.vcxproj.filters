@@ -2,30 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\src\gclib\MemoryPool.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\MemoryResource.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\Mutex.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\ThreadData.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\GlobalData.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\VoidPtr.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\BasicVoidPtr.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\gclib\make.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -34,46 +10,5 @@
     <Filter Include="src">
       <UniqueIdentifier>{522fb134-ce18-4842-94c7-8573512b623e}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\include\gclib\DList.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\DNode.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\MemoryPool.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\MemoryResource.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\Mutex.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\ThreadData.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\GlobalData.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\make.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\VoidPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\BasicVoidPtr.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\ObjectManager.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\gclib\IObjectManager.hpp">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\gclib\Block.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
