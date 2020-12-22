@@ -658,11 +658,11 @@ public:
     GCPtr<Foo2> other;
 
     Foo2() : other(*this) {
-        ++count;
+        count.fetch_add(1, std::memory_order_relaxed);
     }
 
     ~Foo2() {
-        --count;
+        count.fetch_sub(1, std::memory_order_relaxed);
     }
 };
 
@@ -701,7 +701,7 @@ void test3() {
     });
 
     std::cout << "duration = " << dur << " seconds" << std::endl;
-    std::cout << "object count = " << count << std::endl;
+    std::cout << "object count = " << count.load(std::memory_order_acquire) << std::endl;
 }
 
 
