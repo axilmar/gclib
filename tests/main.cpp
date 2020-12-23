@@ -257,6 +257,10 @@ public:
         return static_cast<T*>(GCObjectPtr::get());
     }
 
+    operator bool() const noexcept {
+        return get() != nullptr;
+    }
+
     operator ValueType () const noexcept {
         return get();
     }
@@ -278,17 +282,31 @@ public:
 
 
 class GCNewLock {
-public:
+private:
     GCNewLock(const std::size_t size);
-    GCNewLock(const GCNewLock&) = delete;
-    GCNewLock(GCNewLock&&) = delete;
     ~GCNewLock();
+    template <class T, class... Args> friend GCPtr<T> gcnew(Args&&... args);
 };
 
 
 template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
     GCNewLock lock(sizeof(T));
     return new T(std::forward<Args>(args)...);
+}
+
+
+class GCDeleteLock {
+private:
+    std::recursive_mutex* m_mutex;
+    GCDeleteLock(GCObjectPtr&& ptr);
+    ~GCDeleteLock();
+    template <class T> friend void gcdelete(GCPtr<T>&& ptr);
+};
+
+
+template <class T> void gcdelete(GCPtr<T>&& ptr) {
+    if (!ptr) return;
+    GCDeleteLock lock(std::move(ptr));
 }
 
 
@@ -481,7 +499,6 @@ static void resetPtrs(const GCList<GCObjectPtr>& ptrs) {
 
 
 static void dispose(GCObject* obj) {
-    GCPriv::threadData(obj) = nullptr;
     resetPtrs(GCPriv::ptrs(obj));
     delete obj;
 }
@@ -544,9 +561,10 @@ GCObject::GCObject(GCObject&& object)
 
 
 GCObject::~GCObject() {
-    if (!m_threadData) return;
-    std::lock_guard lock(m_threadData->mutex);
-    detach();
+    if (!m_size) {
+        std::lock_guard lock(thread.data->mutex);
+        detach();
+    }
 }
 
 
@@ -651,6 +669,21 @@ GCNewLock::~GCNewLock() {
 }
 
 
+GCDeleteLock::GCDeleteLock(GCObjectPtr&& ptr) {
+    GCObject* const obj = GCPriv::value(&ptr);
+    m_mutex = &GCPriv::threadData(obj)->mutex;
+    m_mutex->lock();
+    GCPriv::node(obj)->detach();
+    GCPriv::value(&ptr) = nullptr;
+    delete obj;
+}
+
+
+GCDeleteLock::~GCDeleteLock() {
+    m_mutex->unlock();
+}
+
+
 #include <iostream>
 #include <chrono>
 #include <atomic>
@@ -726,6 +759,9 @@ void test3() {
             thread = std::thread([&]() {
                 for (std::size_t i = 0; i < ObjectCount; ++i) {
                     GCPtr<Foo2> foo{ gcnew<Foo2>() };
+                    if (i % 10000 == 0) {
+                        gcdelete(std::move(foo));
+                    }
                 }
             });
         }
