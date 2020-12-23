@@ -307,9 +307,10 @@ struct ThreadData : GCNode<ThreadData> {
 };
 
 
-static thread_local struct Thread {
+static thread_local struct Thread : GCNode<Thread> {
     ThreadData* const data{ new ThreadData };
     std::size_t newObjectSize;
+    GCList<GCObject> rootObjects;
     Thread();
     ~Thread();
 } thread;
@@ -317,6 +318,7 @@ static thread_local struct Thread {
 
 static struct Global {
     std::mutex mutex;
+    GCList<Thread> threads;
     GCList<ThreadData> threadData;
     GCList<ThreadData> terminatedThreadData;
     std::size_t cycle{0};
@@ -357,21 +359,30 @@ struct GCPriv {
     static std::recursive_mutex*& ownerMutex(GCObjectPtr* const ptr) noexcept {
         return ptr->m_ownerMutex;
     }
+
+    static GCObject* next(const GCObject* const obj) noexcept {
+        return obj->next;
+    }
 };
 
 
 Thread::Thread() {
     std::lock_guard lock(global.mutex);
+    global.threads.append(this);
     global.threadData.append(data);
 }
 
 
 Thread::~Thread() {
     std::lock_guard lock(global.mutex);
+    
+    detach();
     data->detach();
+
     data->mutex.lock();
     const bool empty = data->empty();
     data->mutex.unlock();
+    
     if (empty) {
         delete data;
     }
@@ -417,11 +428,24 @@ static void scan(const GCList<GCObjectPtr>& ptrs) {
 }
 
 
+static void scan(const GCList<GCObject>& objects) {
+    for (const GCObject* obj = objects.first(); obj != objects.end(); obj = GCPriv::next(obj)) {
+        scan(GCPriv::ptrs(obj));
+    }
+}
+
+
 static void mark() {
     ++global.cycle;
+    
     global.allocSize.store(0, std::memory_order_release);
+
     for (ThreadData* td = global.threadData.first(); td != global.threadData.end(); td = td->next) {
         scan(td->ptrs);
+    }
+
+    for (Thread* t = global.threads.first(); t != global.threads.end(); t = t->next) {
+        scan(t->rootObjects);
     }
 }
 
@@ -485,11 +509,21 @@ static void countNewObject(const std::size_t size) {
 }
 
 
+static void addObject(GCObject* object) {
+    if (thread.newObjectSize) {
+        thread.data->objects.append(object);
+    }
+    else {
+        thread.rootObjects.append(object);
+    }
+}
+
+
 GCObject::GCObject() 
     : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
-    thread.data->objects.append(this);
+    addObject(this);
 }
 
 
@@ -497,7 +531,7 @@ GCObject::GCObject(const GCObject& object)
     : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
-    thread.data->objects.append(this);
+    addObject(this);
 }
 
 
@@ -505,12 +539,11 @@ GCObject::GCObject(GCObject&& object)
     : m_threadData(thread.data)
     , m_size(thread.newObjectSize)
 {
-    thread.data->objects.append(this);
+    addObject(this);
 }
 
 
-GCObject::~GCObject()
-{
+GCObject::~GCObject() {
     if (!m_threadData) return;
     std::lock_guard lock(m_threadData->mutex);
     detach();
@@ -614,6 +647,7 @@ GCNewLock::GCNewLock(const std::size_t size) {
 
 GCNewLock::~GCNewLock() {
     thread.data->mutex.unlock();
+    thread.newObjectSize = 0;
 }
 
 
@@ -685,6 +719,9 @@ void test3() {
     std::vector<std::thread> threads(ThreadCount);
 
     const double dur = timeFunction([&]() {
+        Foo2 localObject;
+        localObject.other = gcnew<Foo2>();
+
         for (std::thread& thread : threads) {
             thread = std::thread([&]() {
                 for (std::size_t i = 0; i < ObjectCount; ++i) {
@@ -696,9 +733,9 @@ void test3() {
         for (std::thread& thread : threads) {
             thread.join();
         }
-
-        GC::collect();
     });
+
+    GC::collect();
 
     std::cout << "duration = " << dur << " seconds" << std::endl;
     std::cout << "object count = " << count.load(std::memory_order_acquire) << std::endl;
