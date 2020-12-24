@@ -29,6 +29,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\gclib\GCList.hpp" />
+    <ClInclude Include="..\include\gclib\GCNode.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{1CAD6007-6DC7-4D57-9B97-CE6439771046}</ProjectGuid>
