@@ -53,8 +53,8 @@ template <class T> struct GCList : GCNode<T> {
             clear();
         }
         else {
-            list.prev->next = static_cast<T*>(static_cast<GCNode<T>*>(this));
-            list.next->prev = static_cast<T*>(static_cast<GCNode<T>*>(this));
+            list.prev->next = reinterpret_cast<T*>(static_cast<GCNode<T>*>(this));
+            list.next->prev = reinterpret_cast<T*>(static_cast<GCNode<T>*>(this));
             next = list.next;
             prev = list.prev;
             list.clear();
@@ -91,7 +91,7 @@ template <class T> struct GCList : GCNode<T> {
      * @return pointer to the end of the list.
      */
     const void* end() const noexcept {
-        return static_cast<const T*>(static_cast<const GCNode<T>*>(this));
+        return reinterpret_cast<const T*>(static_cast<const GCNode<T>*>(this));
     }
 
     /**
@@ -101,7 +101,7 @@ template <class T> struct GCList : GCNode<T> {
      */
     void append(T* const node) noexcept {
         node->prev = prev;
-        node->next = static_cast<T*>(static_cast<GCNode<T>*>(this));
+        node->next = reinterpret_cast<T*>(static_cast<GCNode<T>*>(this));
         prev->next = node;
         prev = node;
     }
@@ -113,7 +113,7 @@ template <class T> struct GCList : GCNode<T> {
     void append(GCList<T>&& list) noexcept {
         if (list.empty()) return;
         list.next->prev = prev;
-        list.prev->next = static_cast<T*>(static_cast<GCNode<T>*>(this));
+        list.prev->next = reinterpret_cast<T*>(static_cast<GCNode<T>*>(this));
         prev->next = list.next;
         prev = list.prev;
         list.clear();
@@ -124,7 +124,7 @@ template <class T> struct GCList : GCNode<T> {
      * Nodes are not detached, the list is setup to point to itself.
      */
     void clear() noexcept {
-        prev = next = static_cast<T*>(static_cast<GCNode<T>*>(this));
+        prev = next = reinterpret_cast<T*>(static_cast<GCNode<T>*>(this));
     }
 };
 
