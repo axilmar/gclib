@@ -20,6 +20,9 @@ struct GCThreadData : GCNode<GCThreadData> {
     ///blocks allocated by this thread.
     GCList<GCBlockHeader> blocks;
 
+    ///marked blocks of this this thread.
+    GCList<GCBlockHeader> markedBlocks;
+
     ///checks if the data are empty.
     bool empty() const noexcept {
         return ptrs.empty() && blocks.empty();
@@ -30,7 +33,7 @@ struct GCThreadData : GCNode<GCThreadData> {
 /**
  * Per-thread thread-local data.
  */
-class GCThread : public GCNode<GCThread> {
+class GCThread {
 public:
     ///thread data; might outlive the thread, and therefore allocated on the heap
     GCThreadData* data = new GCThreadData;

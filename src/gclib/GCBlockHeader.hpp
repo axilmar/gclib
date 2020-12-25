@@ -17,11 +17,14 @@ public:
     ///end of block.
     void* end;
 
+    ///last gc cycle.
+    std::size_t cycle{ 0 };
+
     ///finalizer.
     void(*finalizer)(void*, void*);
 
-    ///mutex of the owner thread.
-    std::recursive_mutex* mutex;
+    ///thread data the block belongs to
+    struct GCThreadData* owner;
 };
 
 

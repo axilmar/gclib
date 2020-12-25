@@ -14,6 +14,9 @@
     <ClCompile Include="..\src\gclib\GCPtr.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\GC.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -46,6 +49,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gclib\GCPtr.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GC.hpp">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

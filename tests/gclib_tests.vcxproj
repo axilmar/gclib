@@ -27,6 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\gclib\GC.cpp" />
     <ClCompile Include="..\src\gclib\GCCollector.cpp" />
     <ClCompile Include="..\src\gclib\gcnew.cpp" />
     <ClCompile Include="..\src\gclib\GCPtr.cpp" />
@@ -34,6 +35,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\gclib\GC.hpp" />
     <ClInclude Include="..\include\gclib\GCList.hpp" />
     <ClInclude Include="..\include\gclib\gcnew.hpp" />
     <ClInclude Include="..\include\gclib\GCNode.hpp" />

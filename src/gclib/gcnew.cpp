@@ -31,7 +31,7 @@ void* GCNew::allocate(std::size_t size, void(*finalizer)(void*, void*), void*&pr
     new (block) GCBlockHeader;
     block->end = reinterpret_cast<char*>(block) + size;
     block->finalizer = finalizer;
-    block->mutex = &thread.mutex;
+    block->owner = thread.data;
 
     //add the block to the thread
     thread.blocks.append(block);

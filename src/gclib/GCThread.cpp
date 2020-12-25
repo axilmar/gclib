@@ -12,7 +12,7 @@ GCThread& GCThread::instance() {
 GCThread::GCThread() {
     GCCollector& collector = GCCollector::instance();
     std::lock_guard lock(collector.mutex);
-    collector.threads.append(this);
+    collector.threads.append(data);
 }
 
 
@@ -20,9 +20,9 @@ GCThread::GCThread() {
 GCThread::~GCThread() {
     GCCollector& collector = GCCollector::instance();
     std::lock_guard lock(collector.mutex);
-    collector.threads.append(this);
+    data->detach();
     mutex.lock();
     const bool empty = data->empty();
     mutex.unlock();
-    empty ? delete data : collector.threadData.append(data);
+    empty ? delete data : collector.terminatedThreads.append(data);
 }
