@@ -26,7 +26,7 @@ private:
     //allocate gc memory
     static void* allocate(std::size_t size, void(*finalizer)(void*, void*), void*&prevPtrList);
 
-    template <class T, class... Args> friend void* gcnew(Args&&...);
+    template <class T, class... Args> friend GCPtr<T> gcnew(Args&&...);
 };
 
 
@@ -38,8 +38,7 @@ private:
 template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
     GCNew::Lock lock;
     void* mem = GCNew::allocate(sizeof(T), &GCNew::Finalizer<T>::proc, lock.prevPtrList);
-    new (mem) T(std::forward<Args>(args)...);
-    return mem;
+    return new (mem) T(std::forward<Args>(args)...);
 }
 
 
