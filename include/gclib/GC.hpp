@@ -8,9 +8,15 @@
 class GC {
 public:
     /**
-     * Collects garbage. 
+     * Collects garbage synchronously.
+     * @return number of allocated bytes after the collection.
      */
-    void collect();
+    static std::size_t collect();
+
+    /**
+     * Collects data asynchronously. 
+     */
+    static void collectAsync();
 };
 
 

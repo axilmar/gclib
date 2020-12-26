@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\gclib\GC.cpp" />
+    <ClCompile Include="..\src\gclib\GCAsyncCollectionThread.cpp" />
     <ClCompile Include="..\src\gclib\GCCollector.cpp" />
     <ClCompile Include="..\src\gclib\gcnew.cpp" />
     <ClCompile Include="..\src\gclib\GCPtr.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="..\include\gclib\GCNode.hpp" />
     <ClInclude Include="..\include\gclib\GCPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCPtrStruct.hpp" />
+    <ClInclude Include="..\src\gclib\GCAsyncCollectionThread.hpp" />
     <ClInclude Include="..\src\gclib\GCBlockHeader.hpp" />
     <ClInclude Include="..\src\gclib\GCCollector.hpp" />
     <ClInclude Include="..\src\gclib\GCThread.hpp" />

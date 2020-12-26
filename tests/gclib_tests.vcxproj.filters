@@ -17,6 +17,9 @@
     <ClCompile Include="..\src\gclib\GC.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\GCAsyncCollectionThread.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -53,6 +56,9 @@
     </ClInclude>
     <ClInclude Include="..\include\gclib\GC.hpp">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\GCAsyncCollectionThread.hpp">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
