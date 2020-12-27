@@ -2,9 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\src\gclib\GCCollector.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gclib\GCThread.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -18,6 +15,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gclib\GCAsyncCollectionThread.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\GCCollectorData.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -42,9 +42,6 @@
     <ClInclude Include="..\include\gclib\GCPtrStruct.hpp">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\gclib\GCCollector.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\gclib\GCBlockHeader.hpp">
       <Filter>src</Filter>
     </ClInclude>
@@ -58,6 +55,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\src\gclib\GCAsyncCollectionThread.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\gclib\GCCollectorData.hpp">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

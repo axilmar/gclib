@@ -1,5 +1,5 @@
-#ifndef GCLIB_GCCOLLECTOR_HPP
-#define GCLIB_GCCOLLECTOR_HPP
+#ifndef GCLIB_GCCOLLECTORDATA_HPP
+#define GCLIB_GCCOLLECTORDATA_HPP
 
 
 #include <vector>
@@ -9,9 +9,9 @@
 
 
 /**
- * Global data and algorithms.
+ * Global data.
  */
-class GCCollector {
+class GCCollectorData {
 public:
     ///current allocation size
     std::atomic<std::size_t> allocSize{ 0 };
@@ -43,8 +43,8 @@ public:
     std::vector<GCBlockHeader*> blocks;
 
     ///Returns the one and only collector instance.
-    static GCCollector& instance();
+    static GCCollectorData& instance();
 };
 
 
-#endif //GCLIB_GCCOLLECTOR_HPP
+#endif //GCLIB_GCCOLLECTORDATA_HPP

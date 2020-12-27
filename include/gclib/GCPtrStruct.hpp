@@ -13,7 +13,7 @@ struct GCPtrStruct : GCNode<GCPtrStruct> {
     ///the pointer value.
     void* value;
 
-    ///the mutex a pointer shall lock in order to copy/move values, register/unregister itself to/from the collector.
+    ///the mutex this pointer shall lock in order to copy/move values, register/unregister itself to/from the collector.
     std::recursive_mutex* mutex;
 };
 

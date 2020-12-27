@@ -17,6 +17,24 @@ public:
      * Collects data asynchronously. 
      */
     static void collectAsync();
+
+    /**
+     * Returns the current allocation size.
+     * @return the current allocation size.
+     */
+    static std::size_t getAllocSize();
+
+    /**
+     * Returns the current allocation limit.
+     * @return the current allocation limit.
+     */
+    static std::size_t getAllocLimit();
+
+    /**
+     * Sets the current allocation limit.
+     * @param limit new allocation limit.
+     */
+    static void setAllocLimit(std::size_t limit);
 };
 
 

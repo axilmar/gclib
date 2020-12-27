@@ -1,25 +1,25 @@
 #include <algorithm>
 #include "gclib/GC.hpp"
-#include "GCCollector.hpp"
+#include "GCCollectorData.hpp"
 #include "GCAsyncCollectionThread.hpp"
 
 
 //stops all threads that participate in garbage collection
-static bool stopThreads(GCCollector& collector) {
+static bool stopThreads(GCCollectorData& collectorData) {
 
-    //lock the collector so as that no new threads can be added during collection;
+    //lock the collectorData so as that no new threads can be added during collection;
     //only one thread is allowed to enter collection
-    if (!collector.mutex.try_lock()) {
+    if (!collectorData.mutex.try_lock()) {
         return false;
     }
 
     //lock existing threads
-    for (GCThreadData* data = collector.threads.first(); data != collector.threads.end(); data = data->next) {
+    for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
         data->mutex.lock();
     }
 
     //lock thread data of terminated threads; the thread data might be used from existing threads
-    for (GCThreadData* data = collector.terminatedThreads.first(); data != collector.terminatedThreads.end(); data = data->next) {
+    for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end(); data = data->next) {
         data->mutex.lock();
     }
 
@@ -29,43 +29,43 @@ static bool stopThreads(GCCollector& collector) {
 
 
 //resumes all threads that participate in garbage collection
-static void resumeThreads(GCCollector& collector) {
+static void resumeThreads(GCCollectorData& collectorData) {
 
     //unlock thread data of terminated threads
-    for (GCThreadData* data = collector.terminatedThreads.last(); data != collector.terminatedThreads.end(); data = data->prev) {
+    for (GCThreadData* data = collectorData.terminatedThreads.last(); data != collectorData.terminatedThreads.end(); data = data->prev) {
         data->mutex.unlock();
     }
 
     //unlock existing threads
-    for (GCThreadData* data = collector.threads.last(); data != collector.threads.end(); data = data->prev) {
+    for (GCThreadData* data = collectorData.threads.last(); data != collectorData.threads.end(); data = data->prev) {
         data->mutex.unlock();
     }
 
-    //unlock the collector so as that new threads can be added during collection
-    collector.mutex.unlock();
+    //unlock the collectorData so as that new threads can be added during collection
+    collectorData.mutex.unlock();
 }
 
 
 //retrieves all blocks from all threads and thread data, then sorts the blocks by address,
 //in order to use binary search for locating blocks
-static void gatherAllBlocks(GCCollector& collector) {
+static void gatherAllBlocks(GCCollectorData& collectorData) {
 
     //find blocks from threads
-    for (GCThreadData* data = collector.threads.first(); data != collector.threads.end(); data = data->next) {
+    for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
         for (GCBlockHeader* block = data->blocks.first(); block != data->blocks.end(); block = block->next) {
-            collector.blocks.push_back(block);
+            collectorData.blocks.push_back(block);
         }
     }
 
     //find blocks from thread data
-    for (GCThreadData* data = collector.terminatedThreads.first(); data != collector.terminatedThreads.end(); data = data->next) {
+    for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end(); data = data->next) {
         for (GCBlockHeader* block = data->blocks.first(); block != data->blocks.end(); block = block->next) {
-            collector.blocks.push_back(block);
+            collectorData.blocks.push_back(block);
         }
     }
 
     //sort blocks
-    std::sort(collector.blocks.begin(), collector.blocks.end());
+    std::sort(collectorData.blocks.begin(), collectorData.blocks.end());
 }
 
 
@@ -99,19 +99,19 @@ static GCBlockHeader* find(const std::vector<GCBlockHeader*>& blocks, void* addr
 }
 
 
-static void scan(GCCollector& collector, const GCList<GCPtrStruct>& ptrs);
+static void scan(GCCollectorData& collectorData, const GCList<GCPtrStruct>& ptrs);
 
 
 //marks a block as reachable
-static void mark(GCCollector& collector, GCBlockHeader* block) {
+static void mark(GCCollectorData& collectorData, GCBlockHeader* block) {
 
     //if the block is already marked, do nothing else
-    if (block->cycle == collector.cycle) {
+    if (block->cycle == collectorData.cycle) {
         return;
     }
 
     //set the block cycle in order to mark the block as reachable
-    block->cycle = collector.cycle;
+    block->cycle = collectorData.cycle;
 
     //move the block to the list of marked blocks
     //so as that unmarked blocks are easily found later
@@ -120,15 +120,15 @@ static void mark(GCCollector& collector, GCBlockHeader* block) {
 
     //increment the global allocation size by the size of the marked block
     const std::size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
-    collector.allocSize.fetch_add(size, std::memory_order_relaxed);
+    collectorData.allocSize.fetch_add(size, std::memory_order_relaxed);
 
     //scan the member pointers of the block
-    scan(collector, block->ptrs);
+    scan(collectorData, block->ptrs);
 }
 
 
 //scans a pointer
-static void scan(GCCollector& collector, const GCPtrStruct* ptr) {
+static void scan(GCCollectorData& collectorData, const GCPtrStruct* ptr) {
 
     //if null, don't do anything
     if (!ptr->value) {
@@ -136,7 +136,7 @@ static void scan(GCCollector& collector, const GCPtrStruct* ptr) {
     }
 
     //locate the block the pointer points to
-    GCBlockHeader* block = find(collector.blocks, ptr->value);
+    GCBlockHeader* block = find(collectorData.blocks, ptr->value);
 
     //if no block is found, do nothing else
     if (!block) {
@@ -144,61 +144,61 @@ static void scan(GCCollector& collector, const GCPtrStruct* ptr) {
     }
 
     //mark the block as reachable
-    mark(collector, block);
+    mark(collectorData, block);
 }
 
 
 //scans a pointer list
-static void scan(GCCollector& collector, const GCList<GCPtrStruct>& ptrs) {
+static void scan(GCCollectorData& collectorData, const GCList<GCPtrStruct>& ptrs) {
     for (const GCPtrStruct* ptr = ptrs.first(); ptr != ptrs.end(); ptr = ptr->next) {
-        scan(collector, ptr);
+        scan(collectorData, ptr);
     }
 }
 
 
 //mark reachable objects
-static void mark(GCCollector& collector) {
+static void mark(GCCollectorData& collectorData) {
 
     //gather all blocks so as that pointers to middle of blocks are allowed
-    gatherAllBlocks(collector);
+    gatherAllBlocks(collectorData);
 
     //if there are no blocks, then do nothing else
-    if (collector.blocks.empty()) {
+    if (collectorData.blocks.empty()) {
         return;
     }
 
     //next cycle; used for marking reachable blocks
-    ++collector.cycle;
+    ++collectorData.cycle;
 
     //recompute the allocation size as objects are being marked
-    collector.allocSize.store(0, std::memory_order_relaxed);
+    collectorData.allocSize.store(0, std::memory_order_relaxed);
 
     //scan pointers of threads
-    for (GCThreadData* data = collector.threads.first(); data != collector.threads.end(); data = data->next) {
-        scan(collector, data->ptrs);
+    for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
+        scan(collectorData, data->ptrs);
     }
 
     //scan pointers of thread data
-    for (GCThreadData* data = collector.terminatedThreads.first(); data != collector.terminatedThreads.end(); data = data->next) {
-        scan(collector, data->ptrs);
+    for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end(); data = data->next) {
+        scan(collectorData, data->ptrs);
     }
 }
 
 
 //gathers unreachable blocks/threads; reset all blocks vector
-static void cleanup(GCCollector& collector, GCList<GCBlockHeader>& blocks, GCList<GCThreadData>& threads) {
+static void cleanup(GCCollectorData& collectorData, GCList<GCBlockHeader>& blocks, GCList<GCThreadData>& threads) {
 
     //gather unreachable blocks from active threads; 
     //move remaining unmarked objects to the unreachable blocks;
     //move the marked blocks to the blocks
-    for (GCThreadData* data = collector.threads.first(); data != collector.threads.end(); data = data->next) {
+    for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
         blocks.append(std::move(data->blocks));
         data->blocks = std::move(data->markedBlocks);
     }
 
     //gather unreachable blocks from terminated threads;
     //also gather empty thread data to delete later
-    for (GCThreadData* data = collector.terminatedThreads.first(); data != collector.terminatedThreads.end();) {
+    for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end();) {
 
         //if data are empty, gather the data
         if (data->empty()) {
@@ -216,11 +216,11 @@ static void cleanup(GCCollector& collector, GCList<GCBlockHeader>& blocks, GCLis
         }
     }
 
-    //the collector blocks are no longer needed; clear them for next collection
-    collector.blocks.clear();
+    //the collectorData blocks are no longer needed; clear them for next collection
+    collectorData.blocks.clear();
 
     //save the current allocation size
-    collector.lastCollectionAllocSize.store(collector.allocSize.load(std::memory_order_acquire), std::memory_order_release);
+    collectorData.lastCollectionAllocSize.store(collectorData.allocSize.load(std::memory_order_acquire), std::memory_order_release);
 }
 
 
@@ -262,28 +262,28 @@ static void sweep(const GCList<GCBlockHeader>& blocks, const GCList<GCThreadData
 
 //collect garbage
 std::size_t GC::collect() {
-    GCCollector& collector = GCCollector::instance();
+    GCCollectorData& collectorData = GCCollectorData::instance();
 
-    //stop threads that are using the collector;
+    //stop threads that are using the collectorData;
     //if the global mutex was not acquired, it means
     //another thread is currently doing collection
-    if (!stopThreads(collector)) {
-        return collector.allocSize.load(std::memory_order_acquire);
+    if (!stopThreads(collectorData)) {
+        return collectorData.allocSize.load(std::memory_order_acquire);
     }
 
     //mark reachable blocks
-    mark(collector);
+    mark(collectorData);
 
     //locate unreachable blocks/thread data
     GCList<GCBlockHeader> blocks;
     GCList<GCThreadData> threads;
-    cleanup(collector, blocks, threads);
+    cleanup(collectorData, blocks, threads);
 
     //result
-    const std::size_t allocSize = collector.allocSize.load(std::memory_order_acquire);
+    const std::size_t allocSize = collectorData.allocSize.load(std::memory_order_acquire);
 
     //resume the previously stopped threads
-    resumeThreads(collector);
+    resumeThreads(collectorData);
 
     //delete blocks and threads while the program continues running
     sweep(blocks, threads);
@@ -295,4 +295,23 @@ std::size_t GC::collect() {
 //Collects data asynchronously. 
 void GC::collectAsync() {
     GCAsyncCollectionThread::instance().cond.notify_one();
+}
+
+
+
+//Returns the current allocation size.
+std::size_t GC::getAllocSize() {
+    return GCCollectorData::instance().allocSize.load(std::memory_order_acquire);
+}
+
+
+//Returns the current allocation limit.
+std::size_t GC::getAllocLimit() {
+    return GCCollectorData::instance().allocLimit.load(std::memory_order_acquire);
+}
+
+
+//Sets the current allocation limit.
+void setAllocLimit(std::size_t limit) {
+    GCCollectorData::instance().allocLimit.store(limit, std::memory_order_release);
 }

@@ -1,4 +1,4 @@
-#include "GCCollector.hpp"
+#include "GCCollectorData.hpp"
 
 
 ///Returns the one and only thread instance for this thread.
@@ -10,19 +10,19 @@ GCThread& GCThread::instance() {
 
 ///registers the thread to the collector.
 GCThread::GCThread() {
-    GCCollector& collector = GCCollector::instance();
-    std::lock_guard lock(collector.mutex);
-    collector.threads.append(data);
+    GCCollectorData& collectorData = GCCollectorData::instance();
+    std::lock_guard lock(collectorData.mutex);
+    collectorData.threads.append(data);
 }
 
 
 ///unregisters the thread from the collector.
 GCThread::~GCThread() {
-    GCCollector& collector = GCCollector::instance();
-    std::lock_guard lock(collector.mutex);
+    GCCollectorData& collectorData = GCCollectorData::instance();
+    std::lock_guard lock(collectorData.mutex);
     data->detach();
     mutex.lock();
     const bool empty = data->empty();
     mutex.unlock();
-    empty ? delete data : collector.terminatedThreads.append(data);
+    empty ? delete data : collectorData.terminatedThreads.append(data);
 }
