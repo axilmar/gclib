@@ -114,6 +114,6 @@ void GCNewPriv::deallocate(void* mem) {
     GCCollectorData::instance().allocSize.fetch_sub(size, std::memory_order_relaxed);
 
     //free memory
-    ::operator delete(mem);
+    ::operator delete(block);
 }
 

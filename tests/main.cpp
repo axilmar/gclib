@@ -199,6 +199,9 @@ struct Node {
         , data(data)
     {
         count.fetch_add(1, std::memory_order_relaxed);
+        if (depth == 0) {
+            throw std::invalid_argument("depth");
+        }
     }
 
     ~Node() {
@@ -336,6 +339,26 @@ void test11() {
 }
 
 
+void test12() {
+    doTest("exception during construction", []() {
+        std::size_t prevAllocSize = GC::getAllocSize();
+
+        //initialize
+        try {
+            GCPtr<Node> node1 = gcnew<Node>(0);
+        }
+        catch (const std::invalid_argument&) {
+        }
+
+        //collect
+        const std::size_t allocSize = GC::collect();
+
+        //check
+        check(allocSize < prevAllocSize, "Data should have been collected");
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
@@ -352,6 +375,7 @@ int main() {
     */
     test10();
     test11();
+    test12();
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;
