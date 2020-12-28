@@ -187,11 +187,18 @@ void test6() {
 struct Node {
     GCPtr<Node> left;
     GCPtr<Node> right;
+    int data;
 
-    Node(std::size_t depth = 1) 
+    Node(std::size_t depth = 1, int data = 0) 
         : left(depth > 1 ? gcnew<Node>(depth - 1) : nullptr)
         , right(depth > 1 ? gcnew<Node>(depth - 1) : nullptr)
+        , data(data)
     {
+        count.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    ~Node() {
+        count.fetch_sub(1, std::memory_order_relaxed);
     }
 };
 
@@ -286,9 +293,49 @@ void test9() {
 }
 
 
+void test10() {
+    doTest("pointer to middle of object, 0 collectables", []() {
+        //initialize
+        GCPtr<Node> node1 = gcnew<Node>();
+        GCPtr<int> data1 = &node1->data;
+        node1 = nullptr;
+
+        //collect
+        int prevCount = count;
+        std::size_t prevAllocSize = GC::getAllocSize();
+        const std::size_t allocSize = GC::collect();
+
+        //check
+        check(allocSize == prevAllocSize, "No data should have been collected");
+        check(prevCount == count, "Notobjects should have been collected");
+    });
+}
+
+
+void test11() {
+    doTest("pointer to middle of object, 1 collectable", []() {
+        //initialize
+        GCPtr<Node> node1 = gcnew<Node>();
+        GCPtr<int> data1 = &node1->data;
+        node1 = nullptr;
+        data1 = nullptr;
+
+        //collect
+        int prevCount = count;
+        std::size_t prevAllocSize = GC::getAllocSize();
+        const std::size_t allocSize = GC::collect();
+
+        //check
+        check(allocSize < prevAllocSize, "Data should have been collected");
+        check(prevCount - count == 1, "1 object should have been collected");
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
+    /*
     test1();
     test2();
     test3();
@@ -298,6 +345,9 @@ int main() {
     test7();
     test8();
     test9();
+    */
+    test10();
+    test11();
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;
