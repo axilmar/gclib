@@ -72,6 +72,11 @@ void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), PtrL
     //allocate block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(::operator new(size));
 
+    //if no block was allocated, throw exception
+    if (!block) {
+        throw GCBadAlloc();
+    }
+
     GCThread& thread = GCThread::instance();
 
     //init the block
@@ -93,3 +98,22 @@ void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), PtrL
     //return memory after the block
     return block + 1;
 }
+
+
+//deallocate gc memory
+void GCNewPriv::deallocate(void* mem) {
+
+    //get the pointer to the block
+    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
+
+    //remove the block from its thread
+    block->detach();
+
+    //remove the block's size from the collector
+    const std::size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
+    GCCollectorData::instance().allocSize.fetch_sub(size, std::memory_order_relaxed);
+
+    //free memory
+    ::operator delete(mem);
+}
+

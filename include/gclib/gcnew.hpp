@@ -37,7 +37,24 @@ private:
     //allocate gc memory
     static void* allocate(std::size_t size, void(*finalizer)(void*, void*), PtrListOverride& plo);
 
+    //deallocate gc memory
+    static void deallocate(void* mem);
+
     template <class T, class... Args> friend GCPtr<T> gcnew(Args&&...);
+};
+
+
+/**
+ * Thrown if memory allocation for the collector failed.   
+ */
+class GCBadAlloc : public std::bad_alloc {
+public:
+    /**
+     * Returns the message for this exception.  
+     */
+    const char* what() const noexcept final {
+        return "GC memory allocation failed";
+    }
 };
 
 
@@ -45,6 +62,7 @@ private:
  * Allocates a garbage-collected object.
  * @param args arguments to pass to the object's constructor.
  * @return pointer to the object.
+ * @exception GCBadAlloc thrown if memory allocation fails.
  */
 template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
 
@@ -56,22 +74,27 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
     //otherwise the new object might be collected prematurely
     GCNewPriv::Lock lock;
 
-    T* obj;
+    T* result;
     {
-        //while a new block is allocated and constructed, override the thread's ptr list
-        //to point to the list of the allocated block, so as that member pointers are 
-        //added to the current block; use an object to do that, so as that the ptr list
-        //override works also in case of exception
+        //override the pointer list during construction (but not pointer return;
+        //we want the return pointer to not be registered to the block's ptr list)
         GCNewPriv::PtrListOverride plo;
 
-        //allocate block
+        //allocate memory
         void* mem = GCNewPriv::allocate(sizeof(T), &GCNewPriv::Finalizer<T>::proc, plo);
 
-        //initialize block
-        obj = new (mem) T(std::forward<Args>(args)...);
+        //construct the object
+        try {
+            result = ::new (mem) T(std::forward<Args>(args)...);
+        }
+        catch (...) {
+            GCNewPriv::deallocate(mem);
+            throw;
+        }
     }
     
-    return obj;
+    //return the allocated object
+    return result;
 }
 
 

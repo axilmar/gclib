@@ -70,6 +70,10 @@ public:
     ~Foo() {
         count.fetch_sub(1, std::memory_order_relaxed);
     }
+
+    //void* operator new(std::size_t s) {
+    //    return ::operator new(s);
+    //}
 };
 
 
