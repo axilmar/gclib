@@ -200,9 +200,12 @@ static void cleanup(GCCollectorData& collectorData, GCList<GCBlockHeader>& block
     //also gather empty thread data to delete later
     for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end();) {
 
-        //if data are empty, gather the data
+        //if data are empty, put the data into the terminated threads list;
+        //unlock its mutex now, since it is to be removed from the list of terminated threads;
+        //if that is not done, the mutex will be destroyed while locked
         if (data->empty()) {
             GCThreadData* next = data->next;
+            data->mutex.unlock();
             data->detach();
             threads.append(data);
             data = next;
