@@ -16,12 +16,6 @@ GCNewPriv::Lock::~Lock() {
 }
 
 
-//restores the ptr list
-GCNewPriv::PtrListOverride::~PtrListOverride() {
-    GCThread::instance().ptrs = prevPtrList;
-}
-
-
 //if the allocation limit is exceeded, then collect garbage
 void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {    
     GCCollectorData& collectorData = GCCollectorData::instance();
@@ -65,7 +59,7 @@ void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {
 
 
 //allocate gc memory
-void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), PtrListOverride& plo) {
+void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), GCList<GCPtrStruct>*& prevPtrList) {
     //include block header size
     size += sizeof(GCBlockHeader);
 
@@ -89,7 +83,7 @@ void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), PtrL
     thread.blocks.append(block);
 
     //override the ptr list
-    plo.prevPtrList = thread.ptrs;
+    prevPtrList = thread.ptrs;
     thread.ptrs = &block->ptrs;
 
     //increment the global allocation size
@@ -97,6 +91,12 @@ void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), PtrL
 
     //return memory after the block
     return block + 1;
+}
+
+
+//sets the current ptr list
+void GCNewPriv::setPtrList(GCList<GCPtrStruct>* ptrList) {
+    GCThread::instance().ptrs = ptrList;
 }
 
 
@@ -116,4 +116,3 @@ void GCNewPriv::deallocate(void* mem) {
     //free memory
     ::operator delete(block);
 }
-

@@ -198,10 +198,10 @@ struct Node {
         , right(depth > 1 ? gcnew<Node>(depth - 1) : nullptr)
         , data(data)
     {
-        count.fetch_add(1, std::memory_order_relaxed);
         if (depth == 0) {
             throw std::invalid_argument("depth");
         }
+        count.fetch_add(1, std::memory_order_relaxed);
     }
 
     ~Node() {
@@ -354,7 +354,7 @@ void test12() {
         const std::size_t allocSize = GC::collect();
 
         //check
-        check(allocSize < prevAllocSize, "Data should have been collected");
+        check(allocSize == prevAllocSize, "Data should not have been collected");
     });
 }
 
@@ -372,9 +372,9 @@ int main() {
     test7();
     test8();
     test9();
-    */
     test10();
     test11();
+    */
     test12();
     
     if (errorCount > 0) {

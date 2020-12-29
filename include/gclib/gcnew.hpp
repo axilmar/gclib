@@ -18,12 +18,6 @@ private:
         ~Lock();
     };
 
-    //ptr list override
-    struct PtrListOverride {
-        GCList<GCPtrStruct>* prevPtrList;
-        ~PtrListOverride();
-    };
-
     //finalizer
     template <class T> struct Finalizer {
         static void proc(void* start, void* end) {
@@ -35,7 +29,10 @@ private:
     static void collectGarbageIfAllocationLimitIsExceeded();
 
     //allocate gc memory
-    static void* allocate(std::size_t size, void(*finalizer)(void*, void*), PtrListOverride& plo);
+    static void* allocate(std::size_t size, void(*finalizer)(void*, void*), GCList<GCPtrStruct>*& prevPtrList);
+
+    //sets the current pointer list
+    static void setPtrList(GCList<GCPtrStruct>* ptrList);
 
     //deallocate gc memory
     static void deallocate(void* mem);
@@ -74,27 +71,30 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
     //otherwise the new object might be collected prematurely
     GCNewPriv::Lock lock;
 
-    T* result;
-    {
-        //override the pointer list during construction (but not pointer return;
-        //we want the return pointer to not be registered to the block's ptr list)
-        GCNewPriv::PtrListOverride plo;
+    //previous pointer list is stored here
+    GCList<GCPtrStruct>* prevPtrList;
 
-        //allocate memory
-        void* mem = GCNewPriv::allocate(sizeof(T), &GCNewPriv::Finalizer<T>::proc, plo);
+    //allocate memory and set the current pointer list to point to the new block
+    void* mem = GCNewPriv::allocate(sizeof(T), &GCNewPriv::Finalizer<T>::proc, prevPtrList);
 
+    try {
         //construct the object
-        try {
-            result = ::new (mem) T(std::forward<Args>(args)...);
-        }
-        catch (...) {
-            GCNewPriv::deallocate(mem);
-            throw;
-        }
+        T* result = ::new (mem) T(std::forward<Args>(args)...);
+
+        //restore the pointer list
+        GCNewPriv::setPtrList(prevPtrList);
+
+        return result;
     }
-    
-    //return the allocated object
-    return result;
+
+    //catch any exceptions during construction in order to undo the allocation changes
+    catch (...) {
+        GCNewPriv::setPtrList(prevPtrList);
+        GCNewPriv::deallocate(mem);
+        throw;
+    }
+
+    return nullptr;
 }
 
 
