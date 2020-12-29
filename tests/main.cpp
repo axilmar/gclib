@@ -374,8 +374,8 @@ int main() {
     test9();
     test10();
     test11();
-    */
     test12();
+    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

@@ -37,6 +37,43 @@ private:
     //deallocate gc memory
     static void deallocate(void* mem);
 
+    //create objects
+    template <class T, class Init> static GCPtr<T> create(const std::size_t size, Init&& init) {
+        //before any allocation, check if the allocation limit is exceeded;
+        //if so, then collect garbage
+        GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
+
+        //prevent the collector from running until the result pointer is registered to the collector;
+        //otherwise the new object might be collected prematurely
+        GCNewPriv::Lock lock;
+
+        //previous pointer list is stored here
+        GCList<GCPtrStruct>* prevPtrList;
+
+        //allocate memory and set the current pointer list to point to the new block
+        void* mem = GCNewPriv::allocate(size, &GCNewPriv::Finalizer<T>::proc, prevPtrList);
+
+        try {
+            //construct the object
+            T* result = init(mem);
+
+            //restore the pointer list
+            GCNewPriv::setPtrList(prevPtrList);
+
+            return result;
+        }
+
+        //catch any exceptions during construction in order to undo the allocation changes
+        catch (...) {
+            GCNewPriv::setPtrList(prevPtrList);
+            GCNewPriv::deallocate(mem);
+            throw;
+        }
+
+        return nullptr;
+    }
+
+
     template <class T, class... Args> friend GCPtr<T> gcnew(Args&&...);
 };
 
@@ -62,39 +99,9 @@ public:
  * @exception GCBadAlloc thrown if memory allocation fails.
  */
 template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
-
-    //before any allocation, check if the allocation limit is exceeded;
-    //if so, then collect garbage
-    GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
-
-    //prevent the collector from running until the result pointer is registered to the collector;
-    //otherwise the new object might be collected prematurely
-    GCNewPriv::Lock lock;
-
-    //previous pointer list is stored here
-    GCList<GCPtrStruct>* prevPtrList;
-
-    //allocate memory and set the current pointer list to point to the new block
-    void* mem = GCNewPriv::allocate(sizeof(T), &GCNewPriv::Finalizer<T>::proc, prevPtrList);
-
-    try {
-        //construct the object
-        T* result = ::new (mem) T(std::forward<Args>(args)...);
-
-        //restore the pointer list
-        GCNewPriv::setPtrList(prevPtrList);
-
-        return result;
-    }
-
-    //catch any exceptions during construction in order to undo the allocation changes
-    catch (...) {
-        GCNewPriv::setPtrList(prevPtrList);
-        GCNewPriv::deallocate(mem);
-        throw;
-    }
-
-    return nullptr;
+    return GCNewPriv::create<T>(sizeof(T), [&](void* mem) { 
+        return ::new(mem) T(std::forward<Args>(args)...); 
+    });
 }
 
 
