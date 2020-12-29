@@ -57,27 +57,21 @@ void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {
 }
 
 
+//returns the block header size
+std::size_t GCNewPriv::getBlockHeaderSize() {
+    return sizeof(GCBlockHeader);
+}
 
-//allocate gc memory
-void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), GCList<GCPtrStruct>*& prevPtrList) {
-    //include block header size
-    size += sizeof(GCBlockHeader);
 
-    //allocate block
-    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(::operator new(size));
-
-    //if no block was allocated, throw exception
-    if (!block) {
-        throw GCBadAlloc();
-    }
+//register gc memory
+void* GCNewPriv::registerAllocation(std::size_t size, void* mem, void(*finalizer)(void*, void*), std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList) {
+    //get block
+    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
 
     GCThread& thread = GCThread::instance();
 
     //init the block
-    new (block) GCBlockHeader;
-    block->end = reinterpret_cast<char*>(block) + size;
-    block->finalizer = finalizer;
-    block->owner = thread.data;
+    new (block) GCBlockHeader(size, finalizer, std::move(free), thread.data);
 
     //add the block to the thread
     thread.blocks.append(block);
@@ -89,9 +83,24 @@ void* GCNewPriv::allocate(std::size_t size, void(*finalizer)(void*, void*), GCLi
     //increment the global allocation size
     GCCollectorData::instance().allocSize.fetch_add(size, std::memory_order_relaxed);
 
-    //return memory after the block
+    //return memory after the block header
     return block + 1;
 }
+
+
+//unregisters an allocation
+void GCNewPriv::unregisterAllocation(void* mem) {
+    //get the pointer to the block
+    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
+
+    //remove the block from its thread
+    block->detach();
+
+    //remove the block's size from the collector
+    const std::size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
+    GCCollectorData::instance().allocSize.fetch_sub(size, std::memory_order_relaxed);
+}
+
 
 
 //sets the current ptr list
@@ -102,17 +111,7 @@ void GCNewPriv::setPtrList(GCList<GCPtrStruct>* ptrList) {
 
 //deallocate gc memory
 void GCNewPriv::deallocate(void* mem) {
-
-    //get the pointer to the block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
-
-    //remove the block from its thread
-    block->detach();
-
-    //remove the block's size from the collector
-    const std::size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
-    GCCollectorData::instance().allocSize.fetch_sub(size, std::memory_order_relaxed);
-
-    //free memory
-    ::operator delete(block);
+    unregisterAllocation(block);
+    block->free(block);
 }

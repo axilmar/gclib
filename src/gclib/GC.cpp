@@ -240,7 +240,7 @@ static void sweep(GCBlockHeader* block) {
     block->finalizer(block + 1, block->end);
 
     //free memory
-    ::operator delete(block);
+    block->free(block);
 }
 
 

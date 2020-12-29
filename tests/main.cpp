@@ -74,6 +74,10 @@ public:
     //void* operator new(std::size_t s) {
     //    return ::operator new(s);
     //}
+
+    //void operator delete(void* mem) {
+    //    ::operator delete(mem);
+    //}
 };
 
 
@@ -362,7 +366,6 @@ void test12() {
 int main() {
     std::cout << std::fixed;
 
-    /*
     test1();
     test2();
     test3();
@@ -375,7 +378,6 @@ int main() {
     test10();
     test11();
     test12();
-    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

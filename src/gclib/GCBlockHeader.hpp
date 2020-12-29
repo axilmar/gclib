@@ -2,6 +2,7 @@
 #define GCLIB_GCBLOCKHEADER_HPP
 
 
+#include <functional>
 #include "gclib/GCPtrStruct.hpp"
 #include "gclib/GCList.hpp"
 
@@ -23,8 +24,20 @@ public:
     ///finalizer.
     void(*finalizer)(void*, void*);
 
+    ///frees memory
+    std::function<void(void*)> free;
+
     ///thread data the block belongs to
     struct GCThreadData* owner;
+
+    ///constructor
+    GCBlockHeader(std::size_t size, void (*fin)(void*, void*), std::function<void(void*)>&& fr, struct GCThreadData* own)
+        : end(reinterpret_cast<char*>(this) + size)
+        , finalizer(fin)
+        , free(std::move(fr))
+        , owner(own)
+    {
+    }
 };
 
 
