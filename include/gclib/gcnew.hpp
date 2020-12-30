@@ -40,6 +40,15 @@ private:
         }
     };
 
+    //array finalizer
+    template <class T> struct ArrayFinalizer {
+        static void proc(void* start, void* end) {
+            for (T* obj = reinterpret_cast<T*>(end) - 1; obj >= start; --obj) {
+                reinterpret_cast<T*>(obj)->~T();
+            }
+        }
+    };
+
     //test if a class has operator new
     template <class T> struct HasOperatorNew {
     private:
@@ -85,6 +94,9 @@ private:
 
     //returns the block header size
     static std::size_t getBlockHeaderSize();
+
+    //returns a block's end
+    static void* getBlockEnd(const void* start);
 
     //register gc memory
     static void* registerAllocation(std::size_t size, void* mem, void(*finalizer)(void*, void*), std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList);
@@ -141,7 +153,7 @@ private:
     }
 
     //create objects
-    template <class T, class Malloc, class Init, class Free> static GCPtr<T> create(std::size_t size, Malloc&& malloc, Init&& init, Free&& free) {
+    template <class T, class Malloc, class Init, class Free> static GCPtr<T> create(std::size_t size, Malloc&& malloc, Init&& init, void(*finalizer)(void*, void*), Free&& free) {
         //before any allocation, check if the allocation limit is exceeded;
         //if so, then collect garbage
         GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
@@ -165,7 +177,7 @@ private:
         }
 
         //register allocation
-        void* objectMem = GCNewPriv::registerAllocation(size, allocMem, &GCNewPriv::Finalizer<T>::proc, std::forward<Free>(free), prevPtrList);
+        void* objectMem = GCNewPriv::registerAllocation(size, allocMem, finalizer, std::forward<Free>(free), prevPtrList);
 
         //initialize the objects
         try {
@@ -187,6 +199,8 @@ private:
 
 
     template <class T, class... Args> friend GCPtr<T> gcnew(Args&&...);
+    template <class T, class... Args> friend GCPtr<T> gcnewArray(std::size_t count, Args&&...);
+    template <class T> friend void gcdelete(const GCPtr<T>&);
 };
 
 
@@ -210,11 +224,85 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
             return ::new(mem) T(std::forward<Args>(args)...); 
         },
 
+        //finalizer
+        &GCNewPriv::Finalizer<T>::proc,
+
         //free
         [](void* mem) {
             GCNewPriv::free<T>(mem);
         }
     );
+}
+
+
+/**
+ * Allocates a garbage-collected array of objects.
+ * @param count number of elements of the array.
+ * @param args arguments to pass to each object's constructor.
+ * @return pointer to the object.
+ * @exception GCBadAlloc thrown if memory allocation fails.
+ */
+template <class T, class... Args> GCPtr<T> gcnewArray(std::size_t count, Args&&... args) {
+    return GCNewPriv::create<T>(
+        count * sizeof(T), 
+
+        //malloc
+        [](std::size_t size) {
+            return GCNewPriv::mallocArray<T>(size);
+        },
+        
+        //init
+        [&](void* mem) {
+            for (T *obj = reinterpret_cast<T*>(mem), *end = obj + count; obj < end; ++obj) {
+                ::new(obj) T(std::forward<Args>(args)...);
+            }
+            return reinterpret_cast<T*>(mem);
+        },
+
+        //finalizer
+        &GCNewPriv::ArrayFinalizer<T>::proc,
+
+        //free
+        [](void* mem) {
+            GCNewPriv::freeArray<T>(mem);
+        }
+    );
+}
+
+
+/**
+ * Invokes the given object's destructor or the destructors of each object in the array
+ * and deallocates the memory block pointed to by the given pointer.
+ * @param ptr ptr to object to deallocate; it shall point to a garbage-collected object or a garbage-collected array of objects.
+ */
+template <class T> void gcdelete(const GCPtr<T>& ptr) {
+    //get ptr value
+    T* start = ptr.get();
+
+    //if the pointer is null, do nothing else
+    if (!start) {
+        return;
+    }
+
+    //get the block end so as that an array is appropriately destroyed
+    T* end = reinterpret_cast<T*>(GCNewPriv::getBlockEnd(start));
+
+    //destroy objects in reverse order
+    for (T* obj = end - 1; obj >= start; --obj) {
+        obj->~T();
+    }
+
+    //remove the block from the collector
+    GCNewPriv::Lock lock;
+    GCNewPriv::deallocate(start);
+}
+
+
+/**
+ * Same as gcdelete(ptr). 
+ */
+template <class T> void gcdeleteArray(const GCPtr<T>& ptr) {
+    gcdelete(ptr);
 }
 
 

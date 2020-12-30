@@ -63,6 +63,12 @@ std::size_t GCNewPriv::getBlockHeaderSize() {
 }
 
 
+//returns a block's end
+void* GCNewPriv::getBlockEnd(const void* start) {
+    return reinterpret_cast<const GCBlockHeader*>(start)[-1].end;
+}
+
+
 //register gc memory
 void* GCNewPriv::registerAllocation(std::size_t size, void* mem, void(*finalizer)(void*, void*), std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList) {
     //get block

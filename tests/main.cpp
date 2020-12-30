@@ -363,9 +363,84 @@ void test12() {
 }
 
 
+void test13() {
+    doTest("garbage-collected array", []() {
+        std::size_t prevAllocSize = GC::getAllocSize();
+        int prevCount = count;
+
+        //initialize
+        GCPtr<Node> nodeArray = gcnewArray<Node>(10, 1);
+
+        //check
+        check(count == prevCount + 10, "Array not initialized correctly");
+
+        //try to collect
+        std::size_t allocSize = GC::collect();
+
+        //check
+        check(allocSize > prevAllocSize, "Data should not have been collected");
+        check(count == prevCount + 10, "Array objects should not have been destroyed");
+
+        //try to collect from pointer to middle of array
+        nodeArray += 5;
+        allocSize = GC::collect();
+
+        //check
+        check(allocSize > prevAllocSize, "Data should not have been collected (2)");
+        check(count == prevCount + 10, "Array objects should not have been destroyed (2)");
+
+        //collect
+        nodeArray = nullptr;
+        allocSize = GC::collect();
+
+        //check
+        check(allocSize == prevAllocSize, "Data not collected correctly");
+        check(count == prevCount, "Array objects not destroyed correctly");
+    });
+}
+
+
+void test14() {
+    doTest("gcdelete", []() {
+        std::size_t prevAllocSize = GC::getAllocSize();
+        int prevCount = count;
+
+        //initialize
+        GCPtr<Node> node = gcnew<Node>(1);
+        GCPtr<Node> nodeArray = gcnewArray<Node>(10, 1);
+
+        //check
+        check(count == prevCount + 11, "Objects not initialized correctly");
+
+        //try to collect
+        std::size_t allocSize = GC::collect();
+
+        //check
+        check(allocSize > prevAllocSize, "Data should not have been collected");
+        check(count == prevCount + 11, "Objects should not have been destroyed");
+
+        //delete objects
+        gcdelete(node);
+        gcdelete(nodeArray);
+
+        //check
+        check(GC::getAllocSize() == prevAllocSize, "Data not deleted correctly");
+        check(count == prevCount, "Objects not deleted correctly");
+
+        //collect
+        allocSize = GC::collect();
+
+        //check
+        check(allocSize == prevAllocSize, "Data not collected correctly");
+        check(count == prevCount, "Objects not destroyed correctly");
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
+    /*
     test1();
     test2();
     test3();
@@ -378,6 +453,9 @@ int main() {
     test10();
     test11();
     test12();
+    test13();
+    test14();
+    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

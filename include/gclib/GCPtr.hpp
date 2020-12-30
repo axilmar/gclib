@@ -169,6 +169,44 @@ public:
         return value ? get() : throw std::runtime_error("null ptr exception");
     }
 
+    /**
+     * Returns a new pointer with a negative offset.
+     * @param off offset.
+     * @return new pointer with the given offset.
+     */
+    template <class N> GCPtr operator - (N off) const {
+        return get() - off;
+    }
+
+    /**
+     * Returns a new pointer with a positive offset.
+     * @param off offset.
+     * @return new pointer with the given offset.
+     */
+    template <class N> GCPtr operator + (N off) const {
+        return get() + off;
+    }
+
+    /**
+     * Offsets the pointer negatively by the given value.
+     * @para off offset.
+     * @return reference to this.
+     */
+    template <class N> GCPtr& operator -= (N off) {
+        GCPtrPriv::copy(value, get() - off);
+        return *this;
+    }
+
+    /**
+     * Offsets the pointer positively by the given value.
+     * @para off offset.
+     * @return reference to this.
+     */
+    template <class N> GCPtr& operator += (N off) {
+        GCPtrPriv::copy(value, get() + off);
+        return *this;
+    }
+
 private:
     template <class U> friend class GCPtr;
 };
