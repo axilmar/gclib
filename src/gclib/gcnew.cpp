@@ -70,14 +70,14 @@ void* GCNewPriv::getBlockEnd(const void* start) {
 
 
 //register gc memory
-void* GCNewPriv::registerAllocation(std::size_t size, void* mem, void(*finalizer)(void*, void*), std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList) {
+void* GCNewPriv::registerAllocation(std::size_t size, void* mem, std::function<void(void*, void*)>&& finalize, std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList) {
     //get block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
 
     GCThread& thread = GCThread::instance();
 
     //init the block
-    new (block) GCBlockHeader(size, finalizer, std::move(free), thread.data);
+    new (block) GCBlockHeader(size, std::move(finalize), std::move(free), thread.data);
 
     //add the block to the thread
     thread.blocks.append(block);

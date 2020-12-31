@@ -99,7 +99,7 @@ private:
     static void* getBlockEnd(const void* start);
 
     //register gc memory
-    static void* registerAllocation(std::size_t size, void* mem, void(*finalizer)(void*, void*), std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList);
+    static void* registerAllocation(std::size_t size, void* mem, std::function<void(void*, void*)>&& finalize, std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList);
 
     //unregister gc memory
     static void unregisterAllocation(void* mem);

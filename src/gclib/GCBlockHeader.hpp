@@ -21,8 +21,8 @@ public:
     ///last gc cycle.
     std::size_t cycle{ 0 };
 
-    ///finalizer.
-    void(*finalizer)(void*, void*);
+    ///finalize.
+    std::function<void(void*, void*)> finalize;
 
     ///frees memory
     std::function<void(void*)> free;
@@ -31,9 +31,9 @@ public:
     struct GCThreadData* owner;
 
     ///constructor
-    GCBlockHeader(std::size_t size, void (*fin)(void*, void*), std::function<void(void*)>&& fr, struct GCThreadData* own)
+    GCBlockHeader(std::size_t size, std::function<void(void*, void*)>&& fin, std::function<void(void*)>&& fr, struct GCThreadData* own)
         : end(reinterpret_cast<char*>(this) + size)
-        , finalizer(fin)
+        , finalize(std::move(fin))
         , free(std::move(fr))
         , owner(own)
     {

@@ -237,7 +237,7 @@ static void sweep(GCBlockHeader* block) {
     }
 
     //finalize
-    block->finalizer(block + 1, block->end);
+    block->finalize(block + 1, block->end);
 
     //free memory
     block->free(block);
