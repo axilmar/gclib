@@ -20,6 +20,9 @@
     <ClCompile Include="..\src\gclib\GCCollectorData.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\gclib\GCThreadLock.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -59,6 +62,21 @@
     </ClInclude>
     <ClInclude Include="..\src\gclib\GCCollectorData.hpp">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCIBlockHeaderVTable.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCBlockHeaderVTable.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\gctraits.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\gcmalloc.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCThreadLock.hpp">
+      <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

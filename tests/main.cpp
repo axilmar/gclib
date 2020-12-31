@@ -440,7 +440,6 @@ void test14() {
 int main() {
     std::cout << std::fixed;
 
-    /*
     test1();
     test2();
     test3();
@@ -455,7 +454,6 @@ int main() {
     test12();
     test13();
     test14();
-    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

@@ -2,9 +2,9 @@
 #define GCLIB_GCBLOCKHEADER_HPP
 
 
-#include <functional>
 #include "gclib/GCPtrStruct.hpp"
 #include "gclib/GCList.hpp"
+#include "gclib/GCIBlockHeaderVTable.hpp"
 
 
 /**
@@ -21,21 +21,17 @@ public:
     ///last gc cycle.
     std::size_t cycle{ 0 };
 
-    ///finalize.
-    std::function<void(void*, void*)> finalize;
-
-    ///frees memory
-    std::function<void(void*)> free;
-
-    ///thread data the block belongs to
+    ///vtable that manages this block header
+    GCIBlockHeaderVTable& vtable;
+        
+    ///thread data the block belongs to.
     struct GCThreadData* owner;
 
-    ///constructor
-    GCBlockHeader(std::size_t size, std::function<void(void*, void*)>&& fin, std::function<void(void*)>&& fr, struct GCThreadData* own)
+    ///constructor.
+    GCBlockHeader(std::size_t size, GCIBlockHeaderVTable& vtable, struct GCThreadData* owner)
         : end(reinterpret_cast<char*>(this) + size)
-        , finalize(std::move(fin))
-        , free(std::move(fr))
-        , owner(own)
+        , vtable(vtable)
+        , owner(owner)
     {
     }
 };

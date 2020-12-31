@@ -3,19 +3,6 @@
 #include "GCCollectorData.hpp"
 
 
-//locks the current thread
-GCNewPriv::Lock::Lock() {
-    GCThread::instance().mutex.lock();
-}
-
-
-//unlocks the current thread
-GCNewPriv::Lock::~Lock() {
-    GCThread& thread = GCThread::instance();
-    thread.mutex.unlock();
-}
-
-
 //if the allocation limit is exceeded, then collect garbage
 void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {    
     GCCollectorData& collectorData = GCCollectorData::instance();
@@ -63,21 +50,15 @@ std::size_t GCNewPriv::getBlockHeaderSize() {
 }
 
 
-//returns a block's end
-void* GCNewPriv::getBlockEnd(const void* start) {
-    return reinterpret_cast<const GCBlockHeader*>(start)[-1].end;
-}
-
-
 //register gc memory
-void* GCNewPriv::registerAllocation(std::size_t size, void* mem, std::function<void(void*, void*)>&& finalize, std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList) {
+void* GCNewPriv::registerAllocation(std::size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList) {
     //get block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
 
     GCThread& thread = GCThread::instance();
 
     //init the block
-    new (block) GCBlockHeader(size, std::move(finalize), std::move(free), thread.data);
+    new (block) GCBlockHeader(size, vtable, thread.data);
 
     //add the block to the thread
     thread.blocks.append(block);
@@ -91,6 +72,13 @@ void* GCNewPriv::registerAllocation(std::size_t size, void* mem, std::function<v
 
     //return memory after the block header
     return block + 1;
+}
+
+
+//finalizes the given block
+void GCNewPriv::finalize(void* mem) {
+    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
+    block->vtable.finalize(block + 1, block->end);
 }
 
 
@@ -119,5 +107,5 @@ void GCNewPriv::setPtrList(GCList<GCPtrStruct>* ptrList) {
 void GCNewPriv::deallocate(void* mem) {
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
     unregisterAllocation(block);
-    block->free(block);
+    block->vtable.free(block);
 }

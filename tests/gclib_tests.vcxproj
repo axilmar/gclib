@@ -33,15 +33,21 @@
     <ClCompile Include="..\src\gclib\gcnew.cpp" />
     <ClCompile Include="..\src\gclib\GCPtr.cpp" />
     <ClCompile Include="..\src\gclib\GCThread.cpp" />
+    <ClCompile Include="..\src\gclib\GCThreadLock.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\gclib\GC.hpp" />
+    <ClInclude Include="..\include\gclib\GCBlockHeaderVTable.hpp" />
+    <ClInclude Include="..\include\gclib\GCIBlockHeaderVTable.hpp" />
     <ClInclude Include="..\include\gclib\GCList.hpp" />
+    <ClInclude Include="..\include\gclib\gcmalloc.hpp" />
     <ClInclude Include="..\include\gclib\gcnew.hpp" />
     <ClInclude Include="..\include\gclib\GCNode.hpp" />
     <ClInclude Include="..\include\gclib\GCPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCPtrStruct.hpp" />
+    <ClInclude Include="..\include\gclib\GCThreadLock.hpp" />
+    <ClInclude Include="..\include\gclib\gctraits.hpp" />
     <ClInclude Include="..\src\gclib\GCAsyncCollectionThread.hpp" />
     <ClInclude Include="..\src\gclib\GCBlockHeader.hpp" />
     <ClInclude Include="..\src\gclib\GCCollectorData.hpp" />

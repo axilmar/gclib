@@ -124,6 +124,7 @@ static void mark(GCCollectorData& collectorData, GCBlockHeader* block) {
 
     //scan the member pointers of the block
     scan(collectorData, block->ptrs);
+    block->vtable.scan(block + 1, block->end);
 }
 
 
@@ -237,10 +238,10 @@ static void sweep(GCBlockHeader* block) {
     }
 
     //finalize
-    block->finalize(block + 1, block->end);
+    block->vtable.finalize(block + 1, block->end);
 
     //free memory
-    block->free(block);
+    block->vtable.free(block);
 }
 
 

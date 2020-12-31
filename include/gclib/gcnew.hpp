@@ -3,11 +3,41 @@
 
 
 #include <new>
-#include <functional>
+#include "GCThreadLock.hpp"
+#include "GCBlockHeaderVTable.hpp"
 #include "GCPtr.hpp"
 
 
 template <class T> struct GCList;
+
+
+///class with private algorithms used by the gcnew template function.
+class GCNewPriv {
+private:
+    //if the allocation limit is exceeded, then collect garbage
+    static void collectGarbageIfAllocationLimitIsExceeded();
+
+    //returns the block header size
+    static std::size_t getBlockHeaderSize();
+
+    //register gc memory; returns pointer to object memory
+    static void* registerAllocation(std::size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList);
+
+    //finalizes the given block
+    static void finalize(void* mem);
+
+    //unregister gc memory
+    static void unregisterAllocation(void* mem);
+
+    //sets the current pointer list
+    static void setPtrList(GCList<GCPtrStruct>* ptrList);
+
+    //unregister and deallocate gc memory
+    static void deallocate(void* mem);
+
+    template <class T, class Malloc, class Init, class VTable> friend GCPtr<T> gcnew(std::size_t, Malloc&&, Init&&, VTable&);
+    template <class T> friend void gcdelete(const GCPtr<T>&);
+};
 
 
 /**
@@ -24,184 +54,97 @@ public:
 };
 
 
-///class with private algorithms used by the gcnew template function.
-class GCNewPriv {
-private:
-    //thread lock
-    struct Lock {
-        Lock();
-        ~Lock();
-    };
+/**
+ * The main function used for allocating garbage collected memory.
+ * If the allocation limit is exceeded, it starts a parallel collection.
+ * @param size number of bytes to allocate.
+ * @param malloc function to use for allocating memory.
+ * @param init function to use for initializing objects.
+ * @param vtable reference to vtable that is used to scan/finalize/free memory.
+ * @return garbage-collected pointer to object.
+ * @exception GCBadAlloc thrown if malloc returns null.
+ * @exception other thrown from object construction.
+ */
+template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(std::size_t size, Malloc&& malloc, Init&& init, VTable& vtable) {
 
-    //finalizer
-    template <class T> struct Finalizer {
-        static void proc(void* start, void* end) {
-            reinterpret_cast<T*>(start)->~T();
-        }
-    };
+    //before any allocation, check if the allocation limit is exceeded; if so, then collect garbage
+    GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
 
-    //array finalizer
-    template <class T> struct ArrayFinalizer {
-        static void proc(void* start, void* end) {
-            for (T* obj = reinterpret_cast<T*>(end) - 1; obj >= start; --obj) {
-                reinterpret_cast<T*>(obj)->~T();
-            }
-        }
-    };
+    //prevent the collector from running until the result pointer is registered to the collector;
+    //otherwise the new object might be collected prematurely
+    GCThreadLock lock;
 
-    //test if a class has operator new
-    template <class T> struct HasOperatorNew {
-    private:
-        template <class C> static char test(decltype(&C::operator new));
-        template <class C> static int test(...);
+    //previous pointer list is stored here
+    GCList<GCPtrStruct>* prevPtrList;
 
-    public:
-        static constexpr bool Value = sizeof(test<T>(0)) == sizeof(char);
-    };
+    //include the block header in the allocation
+    size += GCNewPriv::getBlockHeaderSize();
 
-    //test if a class has operator delete
-    template <class T> struct HasOperatorDelete {
-    private:
-        template <class C> static char test(decltype(&C::operator delete));
-        template <class C> static int test(...);
+    //allocate memory
+    void* allocMem = malloc(size);
 
-    public:
-        static constexpr bool Value = sizeof(test<T>(0)) == sizeof(char);
-    };
-
-    //test if a class has operator new[]
-    template <class T> struct HasOperatorNewArray {
-    private:
-        template <class C> static char test(decltype(&C::operator new[]));
-        template <class C> static int test(...);
-
-    public:
-        static constexpr bool Value = sizeof(test<T>(0)) == sizeof(char);
-    };
-
-    //test if a class has operator delete[]
-    template <class T> struct HasOperatorDeleteArray {
-    private:
-        template <class C> static char test(decltype(&C::operator delete[]));
-        template <class C> static int test(...);
-
-    public:
-        static constexpr bool Value = sizeof(test<T>(0)) == sizeof(char);
-    };
-
-    //if the allocation limit is exceeded, then collect garbage
-    static void collectGarbageIfAllocationLimitIsExceeded();
-
-    //returns the block header size
-    static std::size_t getBlockHeaderSize();
-
-    //returns a block's end
-    static void* getBlockEnd(const void* start);
-
-    //register gc memory
-    static void* registerAllocation(std::size_t size, void* mem, std::function<void(void*, void*)>&& finalize, std::function<void(void*)>&& free, GCList<GCPtrStruct>*& prevPtrList);
-
-    //unregister gc memory
-    static void unregisterAllocation(void* mem);
-
-    //sets the current pointer list
-    static void setPtrList(GCList<GCPtrStruct>* ptrList);
-
-    //deallocate gc memory
-    static void deallocate(void* mem);
-
-    //allocates memory for the given type
-    template <class T> static void* malloc(size_t size) {
-        if constexpr (HasOperatorNew<T>::Value) {
-            static_assert(HasOperatorDelete<T>::Value, "class has operator new but not operator delete");
-            return T::operator new(size);
-        }
-        else {
-            return ::operator new(size);
-        }
+    //on allocation failure, throw exception
+    if (!allocMem) {
+        throw GCBadAlloc();
     }
 
-    //frees memory for the given type
-    template <class T> static void free(void* mem) {
-        if constexpr (HasOperatorDelete<T>::Value) {
-            T::operator delete(mem);
-        }
-        else {
-            ::operator delete(mem);
-        }
+    //register allocation
+    void* objectMem = GCNewPriv::registerAllocation(size, allocMem, vtable, prevPtrList);
+
+    //initialize the objects
+    try {
+        T* result = init(objectMem);
+        GCNewPriv::setPtrList(prevPtrList);
+        return result;
     }
 
-    //allocates array memory for the given type
-    template <class T> static void* mallocArray(size_t size) {
-        if constexpr (HasOperatorNewArray<T>::Value) {
-            static_assert(HasOperatorDeleteArray<T>::Value, "class has operator new[] but not operator delete[]");
-            return T::operator new[](size);
-        }
-        else {
-            return ::operator new[](size);
-        }
+    //catch any exceptions during construction in order to undo the allocation changes
+    catch (...) {
+        GCNewPriv::setPtrList(prevPtrList);
+        GCNewPriv::unregisterAllocation(allocMem);
+        vtable.free(allocMem);
+        throw;
     }
 
-    //frees array memory for the given type
-    template <class T> static void freeArray(void* mem) {
-        if constexpr (HasOperatorDeleteArray<T>::Value) {
-            T::operator delete[](mem);
-        }
-        else {
-            ::operator delete[](mem);
-        }
-    }
-
-    //create objects
-    template <class T, class Malloc, class Init, class Free> static GCPtr<T> create(std::size_t size, Malloc&& malloc, Init&& init, void(*finalizer)(void*, void*), Free&& free) {
-        //before any allocation, check if the allocation limit is exceeded;
-        //if so, then collect garbage
-        GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
-
-        //prevent the collector from running until the result pointer is registered to the collector;
-        //otherwise the new object might be collected prematurely
-        GCNewPriv::Lock lock;
-
-        //previous pointer list is stored here
-        GCList<GCPtrStruct>* prevPtrList;
-
-        //include the block header in the allocation
-        size += getBlockHeaderSize();
-
-        //allocate memory
-        void* allocMem = malloc(size);
-
-        //on allocation failure, throw exception
-        if (!allocMem) {
-            throw GCBadAlloc();
-        }
-
-        //register allocation
-        void* objectMem = GCNewPriv::registerAllocation(size, allocMem, finalizer, std::forward<Free>(free), prevPtrList);
-
-        //initialize the objects
-        try {
-            T* result = init(objectMem);
-            GCNewPriv::setPtrList(prevPtrList);
-            return result;
-        }
-
-        //catch any exceptions during construction in order to undo the allocation changes
-        catch (...) {
-            GCNewPriv::setPtrList(prevPtrList);
-            GCNewPriv::unregisterAllocation(allocMem);
-            free(allocMem);
-            throw;
-        }
-
-        return nullptr;
-    }
+    return nullptr;
+}
 
 
-    template <class T, class... Args> friend GCPtr<T> gcnew(Args&&...);
-    template <class T, class... Args> friend GCPtr<T> gcnewArray(std::size_t count, Args&&...);
-    template <class T> friend void gcdelete(const GCPtr<T>&);
-};
+/**
+ * Helper function used for allocating garbage collected objects with a custom GC interface.
+ * @param size allocation size.
+ * @param malloc function to use for allocating memory: signature: void*(std::size_t).
+ * @param init function to use for initializing objects; signature: T*(void* mem, Args&&...args).
+ * @param scan function to use for scanning an object for member pointers; signature: void(void* mem).
+ * @param finalize function to use for finalizing the object; signature: void(void* mem).
+ * @param free function to use for scanning an object; signature: void(void* mem).
+ * @param args arguments to pass to the init function.
+ * @return garbage-collected pointer to object.
+ * @exception GCBadAlloc thrown if malloc returns null.
+ * @exception other thrown from object construction.
+ */
+template <class T, class Malloc, class Init, class Scan, class Finalize, class Free, class... Args> 
+GCPtr<T> gcnew(std::size_t size, Malloc&& malloc, Init&& init, Scan&& scan, Finalize&& finalize, Free&& free, Args&&... args)
+{
+    static GCCustomBlockHeaderVTable<Scan, Finalize, Free> vtable(scan, finalize, free);
+
+    return gcnew<T>(
+        size, 
+
+        //malloc
+        [](std::size_t size) {
+            return malloc(size);
+        },
+        
+        //init
+        [&](void* mem) { 
+            return init(mem, std::forward<Args>(args)...); 
+        },
+
+        //vtable
+        vtable
+    );
+}
 
 
 /**
@@ -211,12 +154,14 @@ private:
  * @exception GCBadAlloc thrown if memory allocation fails.
  */
 template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
-    return GCNewPriv::create<T>(
+    static GCBlockHeaderVTable<T> vtable;
+
+    return gcnew<T>(
         sizeof(T), 
 
         //malloc
         [](std::size_t size) {
-            return GCNewPriv::malloc<T>(size);
+            return GCMalloc<T>::malloc(size);
         },
         
         //init
@@ -224,13 +169,8 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
             return ::new(mem) T(std::forward<Args>(args)...); 
         },
 
-        //finalizer
-        &GCNewPriv::Finalizer<T>::proc,
-
-        //free
-        [](void* mem) {
-            GCNewPriv::free<T>(mem);
-        }
+        //vtable
+        vtable
     );
 }
 
@@ -243,12 +183,14 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
  * @exception GCBadAlloc thrown if memory allocation fails.
  */
 template <class T, class... Args> GCPtr<T> gcnewArray(std::size_t count, Args&&... args) {
-    return GCNewPriv::create<T>(
+    static GCBlockHeaderVTable<T[]> vtable;
+
+    return gcnew<T>(
         count * sizeof(T), 
 
         //malloc
         [](std::size_t size) {
-            return GCNewPriv::mallocArray<T>(size);
+            return GCMalloc<T[]>::malloc(size);
         },
         
         //init
@@ -259,13 +201,8 @@ template <class T, class... Args> GCPtr<T> gcnewArray(std::size_t count, Args&&.
             return reinterpret_cast<T*>(mem);
         },
 
-        //finalizer
-        &GCNewPriv::ArrayFinalizer<T>::proc,
-
-        //free
-        [](void* mem) {
-            GCNewPriv::freeArray<T>(mem);
-        }
+        //vtable
+        vtable
     );
 }
 
@@ -276,25 +213,17 @@ template <class T, class... Args> GCPtr<T> gcnewArray(std::size_t count, Args&&.
  * @param ptr ptr to object to deallocate; it shall point to a garbage-collected object or a garbage-collected array of objects.
  */
 template <class T> void gcdelete(const GCPtr<T>& ptr) {
-    //get ptr value
-    T* start = ptr.get();
-
     //if the pointer is null, do nothing else
-    if (!start) {
+    if (!ptr) {
         return;
     }
 
-    //get the block end so as that an array is appropriately destroyed
-    T* end = reinterpret_cast<T*>(GCNewPriv::getBlockEnd(start));
-
-    //destroy objects in reverse order
-    for (T* obj = end - 1; obj >= start; --obj) {
-        obj->~T();
-    }
+    //finalize the object or objects
+    GCNewPriv::finalize(ptr.get());
 
     //remove the block from the collector
-    GCNewPriv::Lock lock;
-    GCNewPriv::deallocate(start);
+    GCThreadLock lock;
+    GCNewPriv::deallocate(ptr);
 }
 
 
