@@ -111,43 +111,6 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(std::s
 
 
 /**
- * Helper function used for allocating garbage collected objects with a custom GC interface.
- * @param size allocation size.
- * @param malloc function to use for allocating memory: signature: void*(std::size_t).
- * @param init function to use for initializing objects; signature: T*(void* mem, Args&&...args).
- * @param scan function to use for scanning an object for member pointers; signature: void(void* mem).
- * @param finalize function to use for finalizing the object; signature: void(void* mem).
- * @param free function to use for scanning an object; signature: void(void* mem).
- * @param args arguments to pass to the init function.
- * @return garbage-collected pointer to object.
- * @exception GCBadAlloc thrown if malloc returns null.
- * @exception other thrown from object construction.
- */
-template <class T, class Malloc, class Init, class Scan, class Finalize, class Free, class... Args> 
-GCPtr<T> gcnew(std::size_t size, Malloc&& malloc, Init&& init, Scan&& scan, Finalize&& finalize, Free&& free, Args&&... args)
-{
-    static GCCustomBlockHeaderVTable<Scan, Finalize, Free> vtable(scan, finalize, free);
-
-    return gcnew<T>(
-        size, 
-
-        //malloc
-        [](std::size_t size) {
-            return malloc(size);
-        },
-        
-        //init
-        [&](void* mem) { 
-            return init(mem, std::forward<Args>(args)...); 
-        },
-
-        //vtable
-        vtable
-    );
-}
-
-
-/**
  * Allocates a garbage-collected object.
  * @param args arguments to pass to the object's constructor.
  * @return pointer to the object.
