@@ -4,6 +4,7 @@
 
 #include <type_traits>
 #include "GCPtrStruct.hpp"
+#include "GCPtrOperations.hpp"
 
 
 ///private GC ptr functions.
@@ -17,12 +18,6 @@ private:
 
     //remove ptr from collector
     static void cleanup(GCPtrStruct* ptr);
-
-    //copy ptr value.
-    static void copy(void*& dst, void* src);
-
-    //move ptr value.
-    static void move(void*& dst, void*& src);
 
     template <class T> friend class GCPtr;
 };
@@ -89,7 +84,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (T* value) {
-        GCPtrPrivate::copy(this->value, value);
+        GCPtrOperations::copy(this->value, value);
         return *this;
     }
 
@@ -99,7 +94,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (const GCPtr& ptr) {
-        GCPtrPrivate::copy(value, ptr.value);
+        GCPtrOperations::copy(value, ptr.value);
         return *this;
     }
 
@@ -109,7 +104,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (GCPtr&& ptr) {
-        GCPtrPrivate::move(value, ptr.value);
+        GCPtrOperations::move(value, ptr.value);
         return *this;
     }
 
@@ -120,7 +115,7 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr& operator = (const GCPtr<U>& ptr) {
-        GCPtrPrivate::copy(value, ptr.value);
+        GCPtrOperations::copy(value, ptr.value);
         return *this;
     }
 
@@ -131,7 +126,7 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr& operator = (GCPtr<U>&& ptr) {
-        GCPtrPrivate::move(value, ptr.value);
+        GCPtrOperations::move(value, ptr.value);
         return *this;
     }
 
@@ -193,7 +188,7 @@ public:
      * @return reference to this.
      */
     template <class N> GCPtr& operator -= (N off) {
-        GCPtrPrivate::copy(value, get() - off);
+        GCPtrOperations::copy(value, get() - off);
         return *this;
     }
 
@@ -203,7 +198,7 @@ public:
      * @return reference to this.
      */
     template <class N> GCPtr& operator += (N off) {
-        GCPtrPrivate::copy(value, get() + off);
+        GCPtrOperations::copy(value, get() + off);
         return *this;
     }
 

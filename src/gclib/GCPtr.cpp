@@ -29,19 +29,3 @@ void GCPtrPrivate::cleanup(GCPtrStruct* ptr) {
     std::lock_guard lock(*ptr->mutex);
     ptr->detach();
 }
-
-
-//copy ptr value.
-void GCPtrPrivate::copy(void*& dst, void* src) {
-    std::lock_guard lock(GCThread::instance().mutex);
-    dst = src;
-}
-
-
-//move ptr value.
-void GCPtrPrivate::move(void*& dst, void*& src) {
-    std::lock_guard lock(GCThread::instance().mutex);
-    void* temp = src;
-    src = nullptr;
-    dst = temp;
-}

@@ -502,7 +502,6 @@ void test15() {
 int main() {
     std::cout << std::fixed;
 
-    /*
     test1();
     test2();
     test3();
@@ -518,7 +517,6 @@ int main() {
     test13();
     test14();
     test15();
-    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;
