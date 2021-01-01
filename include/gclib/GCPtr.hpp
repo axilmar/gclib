@@ -7,7 +7,7 @@
 
 
 ///private GC ptr functions.
-class GCPtrPriv {
+class GCPtrPrivate {
 private:
     //init ptr, copy source value
     static void initCopy(GCPtrStruct* ptr, void* src);
@@ -39,7 +39,7 @@ public:
      * @param value initial value.
      */
     GCPtr(T* value = nullptr) {
-        GCPtrPriv::initCopy(this, value);
+        GCPtrPrivate::initCopy(this, value);
     }
 
     /**
@@ -47,7 +47,7 @@ public:
      * @param ptr source object.
      */
     GCPtr(const GCPtr& ptr) {
-        GCPtrPriv::initCopy(this, ptr.value);
+        GCPtrPrivate::initCopy(this, ptr.value);
     }
 
     /**
@@ -55,7 +55,7 @@ public:
      * @param ptr source object.
      */
     GCPtr(GCPtr&& ptr) {
-        GCPtrPriv::initMove(this, ptr.value);
+        GCPtrPrivate::initMove(this, ptr.value);
     }
 
     /**
@@ -64,7 +64,7 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr(const GCPtr<U>& ptr) {
-        GCPtrPriv::initCopy(this, ptr.value);
+        GCPtrPrivate::initCopy(this, ptr.value);
     }
 
     /**
@@ -73,14 +73,14 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr(GCPtr<U>&& ptr) {
-        GCPtrPriv::initMove(this, ptr.value);
+        GCPtrPrivate::initMove(this, ptr.value);
     }
 
     /**
      * The destructor.
      */
     ~GCPtr() {
-        GCPtrPriv::cleanup(this);
+        GCPtrPrivate::cleanup(this);
     }
 
     /**
@@ -89,7 +89,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (T* value) {
-        GCPtrPriv::copy(this->value, value);
+        GCPtrPrivate::copy(this->value, value);
         return *this;
     }
 
@@ -99,7 +99,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (const GCPtr& ptr) {
-        GCPtrPriv::copy(value, ptr.value);
+        GCPtrPrivate::copy(value, ptr.value);
         return *this;
     }
 
@@ -109,7 +109,7 @@ public:
      * @return reference to this.
      */
     GCPtr& operator = (GCPtr&& ptr) {
-        GCPtrPriv::move(value, ptr.value);
+        GCPtrPrivate::move(value, ptr.value);
         return *this;
     }
 
@@ -120,7 +120,7 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr& operator = (const GCPtr<U>& ptr) {
-        GCPtrPriv::copy(value, ptr.value);
+        GCPtrPrivate::copy(value, ptr.value);
         return *this;
     }
 
@@ -131,7 +131,7 @@ public:
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
     GCPtr& operator = (GCPtr<U>&& ptr) {
-        GCPtrPriv::move(value, ptr.value);
+        GCPtrPrivate::move(value, ptr.value);
         return *this;
     }
 
@@ -193,7 +193,7 @@ public:
      * @return reference to this.
      */
     template <class N> GCPtr& operator -= (N off) {
-        GCPtrPriv::copy(value, get() - off);
+        GCPtrPrivate::copy(value, get() - off);
         return *this;
     }
 
@@ -203,7 +203,7 @@ public:
      * @return reference to this.
      */
     template <class N> GCPtr& operator += (N off) {
-        GCPtrPriv::copy(value, get() + off);
+        GCPtrPrivate::copy(value, get() + off);
         return *this;
     }
 

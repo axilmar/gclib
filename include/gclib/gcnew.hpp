@@ -12,7 +12,7 @@ template <class T> struct GCList;
 
 
 ///class with private algorithms used by the gcnew template function.
-class GCNewPriv {
+class GCNewPrivate {
 private:
     //if the allocation limit is exceeded, then collect garbage
     static void collectGarbageIfAllocationLimitIsExceeded();
@@ -68,7 +68,7 @@ public:
 template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(std::size_t size, Malloc&& malloc, Init&& init, VTable& vtable) {
 
     //before any allocation, check if the allocation limit is exceeded; if so, then collect garbage
-    GCNewPriv::collectGarbageIfAllocationLimitIsExceeded();
+    GCNewPrivate::collectGarbageIfAllocationLimitIsExceeded();
 
     //prevent the collector from running until the result pointer is registered to the collector;
     //otherwise the new object might be collected prematurely
@@ -78,7 +78,7 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(std::s
     GCList<GCPtrStruct>* prevPtrList;
 
     //include the block header in the allocation
-    size += GCNewPriv::getBlockHeaderSize();
+    size += GCNewPrivate::getBlockHeaderSize();
 
     //allocate memory
     void* allocMem = malloc(size);
@@ -89,19 +89,19 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(std::s
     }
 
     //register allocation
-    void* objectMem = GCNewPriv::registerAllocation(size, allocMem, vtable, prevPtrList);
+    void* objectMem = GCNewPrivate::registerAllocation(size, allocMem, vtable, prevPtrList);
 
     //initialize the objects
     try {
         T* result = init(objectMem);
-        GCNewPriv::setPtrList(prevPtrList);
+        GCNewPrivate::setPtrList(prevPtrList);
         return result;
     }
 
     //catch any exceptions during construction in order to undo the allocation changes
     catch (...) {
-        GCNewPriv::setPtrList(prevPtrList);
-        GCNewPriv::unregisterAllocation(allocMem);
+        GCNewPrivate::setPtrList(prevPtrList);
+        GCNewPrivate::unregisterAllocation(allocMem);
         vtable.free(allocMem);
         throw;
     }
@@ -182,11 +182,11 @@ template <class T> void gcdelete(const GCPtr<T>& ptr) {
     }
 
     //finalize the object or objects
-    GCNewPriv::finalize(ptr.get());
+    GCNewPrivate::finalize(ptr.get());
 
     //remove the block from the collector
     GCThreadLock lock;
-    GCNewPriv::deallocate(ptr);
+    GCNewPrivate::deallocate(ptr);
 }
 
 

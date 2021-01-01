@@ -4,7 +4,7 @@
 
 
 //if the allocation limit is exceeded, then collect garbage
-void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {    
+void GCNewPrivate::collectGarbageIfAllocationLimitIsExceeded() {    
     GCCollectorData& collectorData = GCCollectorData::instance();
     
     //get the current allocation size and limit
@@ -45,13 +45,13 @@ void GCNewPriv::collectGarbageIfAllocationLimitIsExceeded() {
 
 
 //returns the block header size
-std::size_t GCNewPriv::getBlockHeaderSize() {
+std::size_t GCNewPrivate::getBlockHeaderSize() {
     return sizeof(GCBlockHeader);
 }
 
 
 //register gc memory
-void* GCNewPriv::registerAllocation(std::size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList) {
+void* GCNewPrivate::registerAllocation(std::size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList) {
     //get block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
 
@@ -76,14 +76,14 @@ void* GCNewPriv::registerAllocation(std::size_t size, void* mem, GCIBlockHeaderV
 
 
 //finalizes the given block
-void GCNewPriv::finalize(void* mem) {
+void GCNewPrivate::finalize(void* mem) {
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
     block->vtable.finalize(block + 1, block->end);
 }
 
 
 //unregisters an allocation
-void GCNewPriv::unregisterAllocation(void* mem) {
+void GCNewPrivate::unregisterAllocation(void* mem) {
     //get the pointer to the block
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
 
@@ -98,13 +98,13 @@ void GCNewPriv::unregisterAllocation(void* mem) {
 
 
 //sets the current ptr list
-void GCNewPriv::setPtrList(GCList<GCPtrStruct>* ptrList) {
+void GCNewPrivate::setPtrList(GCList<GCPtrStruct>* ptrList) {
     GCThread::instance().ptrs = ptrList;
 }
 
 
 //deallocate gc memory
-void GCNewPriv::deallocate(void* mem) {
+void GCNewPrivate::deallocate(void* mem) {
     GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem) - 1;
     unregisterAllocation(block);
     block->vtable.free(block);

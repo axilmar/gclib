@@ -3,7 +3,7 @@
 
 
 //init ptr, copy source value
-void GCPtrPriv::initCopy(GCPtrStruct* ptr, void* src) {
+void GCPtrPrivate::initCopy(GCPtrStruct* ptr, void* src) {
     GCThread& thread = GCThread::instance();
     ptr->value = src;
     ptr->mutex = &thread.mutex;
@@ -13,7 +13,7 @@ void GCPtrPriv::initCopy(GCPtrStruct* ptr, void* src) {
 
 
 //init ptr, move source value
-void GCPtrPriv::initMove(GCPtrStruct* ptr, void*& src) {
+void GCPtrPrivate::initMove(GCPtrStruct* ptr, void*& src) {
     GCThread& thread = GCThread::instance();
     ptr->value = src;
     ptr->mutex = &thread.mutex;
@@ -24,7 +24,7 @@ void GCPtrPriv::initMove(GCPtrStruct* ptr, void*& src) {
 
 
 //remove ptr from collector
-void GCPtrPriv::cleanup(GCPtrStruct* ptr) {
+void GCPtrPrivate::cleanup(GCPtrStruct* ptr) {
     if (!ptr->mutex) return;
     std::lock_guard lock(*ptr->mutex);
     ptr->detach();
@@ -32,14 +32,14 @@ void GCPtrPriv::cleanup(GCPtrStruct* ptr) {
 
 
 //copy ptr value.
-void GCPtrPriv::copy(void*& dst, void* src) {
+void GCPtrPrivate::copy(void*& dst, void* src) {
     std::lock_guard lock(GCThread::instance().mutex);
     dst = src;
 }
 
 
 //move ptr value.
-void GCPtrPriv::move(void*& dst, void*& src) {
+void GCPtrPrivate::move(void*& dst, void*& src) {
     std::lock_guard lock(GCThread::instance().mutex);
     void* temp = src;
     src = nullptr;
