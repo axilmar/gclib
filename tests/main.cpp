@@ -8,6 +8,7 @@
 #include <deque>
 #include "gclib/gcnew.hpp"
 #include "gclib/GC.hpp"
+#include "gclib/GCCustomBlockHeaderVTable.hpp"
 
 
 template <class F> double timeFunction(F&& func) {
@@ -437,9 +438,71 @@ void test14() {
 }
 
 
+struct Data {
+    int value;
+};
+
+
+void scanData(void* mem) {
+    Data* data = reinterpret_cast<Data*>(mem);
+    data->value = 2;
+}
+
+
+Data* initData(void* mem) {
+    ++count;
+    Data* data = reinterpret_cast<Data*>(mem);
+    data->value = 1;
+    return data;
+}
+
+
+void cleanupData(void* mem) {
+    --count;
+}
+
+
+void freeData(void* mem) {
+    free(mem);
+}
+
+
+void test15() {
+    doTest("custom block header", []() {
+        std::size_t prevAllocSize = GC::getAllocSize();
+        int prevCount = count;
+
+        //initialize
+        GCCustomBlockHeaderVTable vtable{&scanData, &cleanupData, &freeData};        
+        GCPtr<Data> data{ gcnew<Data>(sizeof(Data), [](std::size_t size) { return malloc(size); }, initData, vtable) };
+
+        //check
+        check(data->value == 1, "Invalid initialization");
+        check(count == prevCount + 1, "Invalid initialization");
+
+        //collect
+        GC::collect();
+
+        //check
+        check(data->value == 2, "Data not scanned as expected");
+
+        //reset
+        data = nullptr;
+
+        //collect
+        GC::collect();
+
+        //check
+        check(GC::getAllocSize() == prevAllocSize, "Data not collected as expected");
+        check(count == prevCount, "Data not collected as expected");
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
+    /*
     test1();
     test2();
     test3();
@@ -454,6 +517,8 @@ int main() {
     test12();
     test13();
     test14();
+    test15();
+    */
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

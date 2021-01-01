@@ -78,5 +78,8 @@
     <ClInclude Include="..\include\gclib\GCThreadLock.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\gclib\GCCustomBlockHeaderVTable.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
