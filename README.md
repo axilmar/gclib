@@ -5,7 +5,7 @@ gclib is a C++17 garbage-collection library with the following features:
 - 100% c++17 portable code.
 - precise collection; only actual pointers are traced.
 - implements the mark & sweep algorithm.
-- can be used concurrently by multiple threads; very low (almost non-existent) thread contention.
+- can be used concurrently by multiple threads; very low (almost non-existent) lock contention.
 - allows pointers to the middle of objects or object arrays.
 
 ## Classes
