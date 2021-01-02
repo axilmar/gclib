@@ -37,6 +37,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\gclib.hpp" />
     <ClInclude Include="..\include\gclib\GC.hpp" />
     <ClInclude Include="..\include\gclib\GCBasicPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCBlockHeaderVTable.hpp" />

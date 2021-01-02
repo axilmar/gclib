@@ -90,5 +90,6 @@
     <ClInclude Include="..\include\gclib\GCIScannableObject.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\gclib.hpp" />
   </ItemGroup>
 </Project>

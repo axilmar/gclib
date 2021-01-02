@@ -6,10 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <deque>
-#include "gclib/gcnew.hpp"
-#include "gclib/GC.hpp"
-#include "gclib/GCCustomBlockHeaderVTable.hpp"
-#include "gclib/GCBasicPtr.hpp"
+#include "gclib.hpp"
 
 
 template <class F> double timeFunction(F&& func) {
