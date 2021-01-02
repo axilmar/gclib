@@ -25,32 +25,34 @@ gclib is a C++17 garbage-collection library with the following features:
 
 ## Example
 
-	#include "gclib.hpp"
+```cpp
+#include "gclib.hpp"
 
-	//a class that uses garbage collection
-	class MyClass {
-	public:
-		GCPtr<MyClass> other;
-    };
+//a class that uses garbage collection
+class MyClass {
+public:
+	GCPtr<MyClass> other;
+};
 
-	int main() {
-		//create two garbage collected objects
-		GCPtr<MyClass> object1{gcnew<MyClass>()};
-		GCPtr<MyClass> object2{gcnew<MyClass>()};
+int main() {
+	//create two garbage collected objects
+	GCPtr<MyClass> object1{gcnew<MyClass>()};
+	GCPtr<MyClass> object2{gcnew<MyClass>()};
 
-		//form a cycle
-		object1->other = object2;
-		object2->other = object1;
+	//form a cycle
+	object1->other = object2;
+	object2->other = object1;
 
-		//remove root references
-		object1 = nullptr;
-		object2 = nullptr;
+	//remove root references
+	object1 = nullptr;
+	object2 = nullptr;
 
-		//collect garbage; the above objects will be collected
-		GC::collect();
+	//collect garbage; the above objects will be collected
+	GC::collect();
 
-		return 0;
-	}
+	return 0;
+}
+```
 
 ## More Examples
 
