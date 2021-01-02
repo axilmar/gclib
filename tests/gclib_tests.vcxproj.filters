@@ -84,5 +84,11 @@
     <ClInclude Include="..\include\gclib\GCPtrOperations.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\gclib\GCBasicPtr.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCIScannableObject.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

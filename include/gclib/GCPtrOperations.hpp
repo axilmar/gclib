@@ -11,6 +11,13 @@
 class GCPtrOperations {
 public:
     /**
+     * Helper function used for scanning a pointer.
+     * Invoked during the mark phase.
+     * @param value pointer value.
+     */
+    static void scan(void* value);
+
+    /**
      * Function that allows copying a pointer synchronized with the collector.
      * @param dst destination pointer.
      * @param src source pointer.

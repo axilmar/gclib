@@ -9,6 +9,7 @@
 #include "gclib/gcnew.hpp"
 #include "gclib/GC.hpp"
 #include "gclib/GCCustomBlockHeaderVTable.hpp"
+#include "gclib/GCBasicPtr.hpp"
 
 
 template <class F> double timeFunction(F&& func) {
@@ -499,24 +500,144 @@ void test15() {
 }
 
 
+struct Node1 : GCIScannableObject {
+    GCBasicPtr<Node1> left;
+    GCBasicPtr<Node1> right;
+    int data;
+
+    Node1(std::size_t depth = 1, int data = 0) 
+        : left(depth > 1 ? gcnew<Node1>(depth - 1) : nullptr)
+        , right(depth > 1 ? gcnew<Node1>(depth - 1) : nullptr)
+        , data(data)
+    {
+        if (depth == 0) {
+            throw std::invalid_argument("depth");
+        }
+        count.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    ~Node1() {
+        count.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    void scan() const noexcept final {
+        left.scan();
+        right.scan();
+    }
+};
+
+
+void test16() {
+    doTest("1 thread, 2^20 objects per thread, using basic ptrs", []() {
+        //initialize
+        int prevCount = count;
+        std::thread thread([]() {
+            GCPtr<Node1> root = gcnew<Node1>(20);
+        });
+        thread.join();
+
+        //collect
+        const std::size_t allocSize = GC::collect();
+
+        //wait for collections to finish
+        waitCollection(prevCount);
+    });
+}
+
+
+void test17() {
+    doTest("4 threads, 2^20 objects per thread, using basic ptrs", []() {
+        int prevCount = count;
+
+        //initialize
+        const std::size_t ThreadCount = 4;
+        const std::size_t ObjectCountPerThread = 1 << 20;
+        std::vector<std::thread> threads;
+
+        for (std::size_t i = 0; i < ThreadCount; ++i) {
+            threads.push_back(std::thread([]() {
+                GCPtr<Node1> root = gcnew<Node1>(16);
+            }));
+        }
+
+        for (std::thread& thread : threads) {
+            thread.join();
+        }
+
+        //collect
+        const std::size_t allocSize = GC::collect();
+
+        //wait for collections to finish
+        waitCollection(prevCount);
+    });
+}
+
+
+void test18() {
+    doTest("Producer-consumer, 2^20 objects, using basic ptrs", []() {
+        int prevCount = count;
+
+        //initialize
+        const std::size_t ObjectCount = 1 << 20;
+        std::mutex mutex;
+        std::condition_variable cond;
+        std::deque<GCPtr<Node1>> objects;
+
+        std::thread consumerThread([&]() {
+            std::size_t receivedObjectCount = 0;
+            while (receivedObjectCount < ObjectCount) {
+                std::unique_lock lock(mutex);
+                while (objects.empty()) {
+                    cond.wait(lock);
+                }
+                objects.pop_front();
+                ++receivedObjectCount;
+            }
+        });
+
+        std::thread producerThread([&]() {
+            for (std::size_t i = 0; i < ObjectCount; ++i) {
+                {
+                    std::lock_guard lock(mutex);
+                    objects.push_back(gcnew<Node1>());
+                }
+                cond.notify_one();
+            }
+        });
+
+        producerThread.join();
+        consumerThread.join();
+
+        //collect
+        const std::size_t allocSize = GC::collect();
+
+        //wait for collections to finish
+        waitCollection(prevCount);
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
-    test1();
-    test2();
-    test3();
-    test4();
-    test5();
-    test6();
+    //test1();
+    //test2();
+    //test3();
+    //test4();
+    //test5();
+    //test6();
     test7();
     test8();
     test9();
-    test10();
-    test11();
-    test12();
-    test13();
-    test14();
-    test15();
+    //test10();
+    //test11();
+    //test12();
+    //test13();
+    //test14();
+    //test15();
+    test16();
+    test17();
+    test18();
     
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

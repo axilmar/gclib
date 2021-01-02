@@ -1,63 +1,43 @@
-#ifndef GCLIB_GCPTR_HPP
-#define GCLIB_GCPTR_HPP
+#ifndef GCLIB_GCBASICPTR_HPP
+#define GCLIB_GCBASICPTR_HPP
 
 
-#include <type_traits>
-#include "GCPtrStruct.hpp"
+#include <stdexcept>
 #include "GCPtrOperations.hpp"
 
 
-///private GC ptr functions.
-class GCPtrPrivate {
-private:
-    //init ptr, copy source value
-    static void initCopy(GCPtrStruct* ptr, void* src);
-
-    //init ptr, move source value
-    static void initMove(GCPtrStruct* ptr, void*& src);
-
-    //remove ptr from collector
-    static void cleanup(GCPtrStruct* ptr);
-
-    template <class T> friend class GCPtr;
-};
-
-
 /**
- * A garbage collected pointer.
- * It is a 'fat' pointer class: it contains extra members so as that it can attach itself
- * to the appropriate list of pointers (either the root set or the set of the block currently
- * being initialized.
+ * A pointer class that allows the manual management of ptr values.
  * 
- * For a non-fat version of a garbage-collected pointer, the class GCBasicPtr provides
- * garbage-collection functionality but it must be manually visited during collection time.
+ * Unlike the class GCBasicPtr, this is not a 'fat' pointer type: it has exactly
+ * the same size as a raw pointer.
  * 
- * @param T type of value to point to.
+ * It can point to anything.
+ * 
+ * @param T type of object to point to.
  */
-template <class T> class GCPtr : private GCPtrStruct {
+template <class T> class GCBasicPtr {
 public:
     /**
      * The default constructor.
      * @param value initial value.
      */
-    GCPtr(T* value = nullptr) {
-        GCPtrPrivate::initCopy(this, value);
+    GCBasicPtr(T* value = nullptr) : m_value(value) {
     }
 
     /**
      * The copy constructor.
      * @param ptr source object.
      */
-    GCPtr(const GCPtr& ptr) {
-        GCPtrPrivate::initCopy(this, ptr.value);
+    GCBasicPtr(const GCBasicPtr& ptr) : m_value(ptr.m_value) {
     }
 
     /**
      * The move constructor.
      * @param ptr source object.
      */
-    GCPtr(GCPtr&& ptr) {
-        GCPtrPrivate::initMove(this, ptr.value);
+    GCBasicPtr(GCBasicPtr&& ptr) : m_value(ptr.m_value) {
+        GCPtrOperations::copy(ptr.m_value, nullptr);
     }
 
     /**
@@ -65,8 +45,7 @@ public:
      * @param ptr source object.
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
-    GCPtr(const GCPtr<U>& ptr) {
-        GCPtrPrivate::initCopy(this, ptr.value);
+    GCBasicPtr(const GCBasicPtr<U>& ptr) : m_value(ptr.m_value) {
     }
 
     /**
@@ -74,15 +53,8 @@ public:
      * @param ptr source object.
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
-    GCPtr(GCPtr<U>&& ptr) {
-        GCPtrPrivate::initMove(this, ptr.value);
-    }
-
-    /**
-     * The destructor.
-     */
-    ~GCPtr() {
-        GCPtrPrivate::cleanup(this);
+    GCBasicPtr(GCBasicPtr<U>&& ptr) : m_value(ptr.m_value) {
+        GCPtrOperations::copy(ptr.m_value, nullptr);
     }
 
     /**
@@ -90,8 +62,8 @@ public:
      * @param value value.
      * @return reference to this.
      */
-    GCPtr& operator = (T* value) {
-        GCPtrOperations::copy(this->value, value);
+    GCBasicPtr& operator = (T* value) {
+        GCPtrOperations::copy(m_value, value);
         return *this;
     }
 
@@ -100,8 +72,8 @@ public:
      * @param ptr source object.
      * @return reference to this.
      */
-    GCPtr& operator = (const GCPtr& ptr) {
-        GCPtrOperations::copy(value, ptr.value);
+    GCBasicPtr& operator = (const GCBasicPtr& ptr) {
+        GCPtrOperations::copy(m_value, ptr.m_value);
         return *this;
     }
 
@@ -110,8 +82,8 @@ public:
      * @param ptr source object.
      * @return reference to this.
      */
-    GCPtr& operator = (GCPtr&& ptr) {
-        GCPtrOperations::move(value, ptr.value);
+    GCBasicPtr& operator = (GCBasicPtr&& ptr) {
+        GCPtrOperations::move(m_value, ptr.m_value);
         return *this;
     }
 
@@ -121,8 +93,8 @@ public:
      * @return reference to this.
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
-    GCPtr& operator = (const GCPtr<U>& ptr) {
-        GCPtrOperations::copy(value, ptr.value);
+    GCBasicPtr& operator = (const GCBasicPtr<U>& ptr) {
+        GCPtrOperations::copy(m_value, ptr.m_value);
         return *this;
     }
 
@@ -132,8 +104,8 @@ public:
      * @return reference to this.
      */
     template <class U, class = std::enable_if_t<std::is_base_of_v<T, U>, int>>
-    GCPtr& operator = (GCPtr<U>&& ptr) {
-        GCPtrOperations::move(value, ptr.value);
+    GCBasicPtr& operator = (GCBasicPtr<U>&& ptr) {
+        GCPtrOperations::move(m_value, ptr.m_value);
         return *this;
     }
 
@@ -142,7 +114,7 @@ public:
      * @return the raw pointer value.
      */
     T* get() const noexcept {
-        return reinterpret_cast<T*>(value);
+        return m_value;
     }
 
     /**
@@ -150,7 +122,7 @@ public:
      * @return the raw pointer value.
      */
     operator T*() const noexcept {
-        return get();
+        return m_value;
     }
 
     /**
@@ -159,7 +131,7 @@ public:
      * @exception std::runtime_error thrown if the pointer is null.
      */
     T& operator *() const {
-        return value ? *get() : throw std::runtime_error("null ptr exception");
+        return m_value ? *m_value : throw std::runtime_error("null ptr exception");
     }
 
     /**
@@ -168,7 +140,7 @@ public:
      * @exception std::runtime_error thrown if the pointer is null.
      */
     T* operator ->() const {
-        return value ? get() : throw std::runtime_error("null ptr exception");
+        return m_value ? m_value : throw std::runtime_error("null ptr exception");
     }
 
     /**
@@ -176,8 +148,8 @@ public:
      * @param off offset.
      * @return new pointer with the given offset.
      */
-    template <class N> GCPtr operator - (N off) const {
-        return get() - off;
+    template <class N> GCBasicPtr operator - (N off) const {
+        return m_value - off;
     }
 
     /**
@@ -185,8 +157,8 @@ public:
      * @param off offset.
      * @return new pointer with the given offset.
      */
-    template <class N> GCPtr operator + (N off) const {
-        return get() + off;
+    template <class N> GCBasicPtr operator + (N off) const {
+        return m_value + off;
     }
 
     /**
@@ -194,8 +166,8 @@ public:
      * @para off offset.
      * @return reference to this.
      */
-    template <class N> GCPtr& operator -= (N off) {
-        GCPtrOperations::copy(value, get() - off);
+    template <class N> GCBasicPtr& operator -= (N off) {
+        GCPtrOperations::copy(m_value, m_value - off);
         return *this;
     }
 
@@ -204,14 +176,22 @@ public:
      * @para off offset.
      * @return reference to this.
      */
-    template <class N> GCPtr& operator += (N off) {
-        GCPtrOperations::copy(value, get() + off);
+    template <class N> GCBasicPtr& operator += (N off) {
+        GCPtrOperations::copy(m_value, m_value + off);
         return *this;
     }
 
+    /**
+     * Used for manually scanning the pointer during the mark phase of the collection. 
+     */
+    void scan() const noexcept {
+        GCPtrOperations::scan(m_value);
+    }
+
 private:
-    template <class U> friend class GCPtr;
+    T* m_value;
+    template <class U> friend class GCBasicPtr;
 };
 
 
-#endif //GCLIB_GCPTR_HPP
+#endif //GCLIB_GCBASICPTR_HPP

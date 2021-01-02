@@ -3,6 +3,7 @@
 
 
 #include "GCIBlockHeaderVTable.hpp"
+#include "GCIScannableObject.hpp"
 #include "gcmalloc.hpp"
 
 
@@ -14,11 +15,15 @@ template <class T> class GCBlockHeaderVTable : public GCIBlockHeaderVTable {
 public:
     /**
      * Scans for member pointers.
-     * Empty by default; the collector will scan for gc pointers by default.
+     * If T implements the interface GCIScannableObject, then it calls 
+     * the scan function of that interface, otherwise it does nothing.
      * @param start memory start.
      * @param end memory end.
      */
     void scan(void* start, void* end) noexcept final {
+        if constexpr (std::is_base_of_v<GCIScannableObject, T>) {
+            reinterpret_cast<T*>(start)->GCIScannableObject::scan();
+        }
     }
 
     /**
@@ -48,11 +53,18 @@ template <class T> class GCBlockHeaderVTable<T[]> : public GCIBlockHeaderVTable 
 public:
     /**
      * Scans for member pointers.
-     * Empty by default; the collector will scan for gc pointers by default.
+     * If T implements the interface GCIScannableObject, then it calls 
+     * the scan function of that interface,for each object of the array,
+     * otherwise it does nothing.
      * @param start memory start.
      * @param end memory end.
      */
     void scan(void* start, void* end) noexcept final {
+        if constexpr (std::is_base_of_v<GCIScannableObject, T>) {
+            for (T* obj = reinterpret_cast<T*>(start); obj < end; ++obj) {
+                reinterpret_cast<T*>(obj)->GCIScannableObject::scan();
+            }
+        }
     }
 
     /**

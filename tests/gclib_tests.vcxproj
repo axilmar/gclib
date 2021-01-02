@@ -38,9 +38,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\gclib\GC.hpp" />
+    <ClInclude Include="..\include\gclib\GCBasicPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCBlockHeaderVTable.hpp" />
     <ClInclude Include="..\include\gclib\GCCustomBlockHeaderVTable.hpp" />
     <ClInclude Include="..\include\gclib\GCIBlockHeaderVTable.hpp" />
+    <ClInclude Include="..\include\gclib\GCIScannableObject.hpp" />
     <ClInclude Include="..\include\gclib\GCList.hpp" />
     <ClInclude Include="..\include\gclib\gcmalloc.hpp" />
     <ClInclude Include="..\include\gclib\gcnew.hpp" />

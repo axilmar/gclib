@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "gclib/GC.hpp"
+#include "gclib/GCPtrOperations.hpp"
 #include "GCCollectorData.hpp"
 #include "GCAsyncCollectionThread.hpp"
 
@@ -129,15 +130,15 @@ static void mark(GCCollectorData& collectorData, GCBlockHeader* block) {
 
 
 //scans a pointer
-static void scan(GCCollectorData& collectorData, const GCPtrStruct* ptr) {
+static void scan(GCCollectorData& collectorData, void* value) {
 
     //if null, don't do anything
-    if (!ptr->value) {
+    if (!value) {
         return;
     }
 
     //locate the block the pointer points to
-    GCBlockHeader* block = find(collectorData.blocks, ptr->value);
+    GCBlockHeader* block = find(collectorData.blocks, value);
 
     //if no block is found, do nothing else
     if (!block) {
@@ -152,7 +153,7 @@ static void scan(GCCollectorData& collectorData, const GCPtrStruct* ptr) {
 //scans a pointer list
 static void scan(GCCollectorData& collectorData, const GCList<GCPtrStruct>& ptrs) {
     for (const GCPtrStruct* ptr = ptrs.first(); ptr != ptrs.end(); ptr = ptr->next) {
-        scan(collectorData, ptr);
+        scan(collectorData, ptr->value);
     }
 }
 
@@ -318,4 +319,10 @@ std::size_t GC::getAllocLimit() {
 //Sets the current allocation limit.
 void setAllocLimit(std::size_t limit) {
     GCCollectorData::instance().allocLimit.store(limit, std::memory_order_release);
+}
+
+
+//Helper function used for scanning a pointer.
+void GCPtrOperations::scan(void* value) {
+    ::scan(GCCollectorData::instance(), value);
 }
