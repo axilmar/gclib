@@ -56,4 +56,4 @@ int main() {
 
 ## More Examples
 
-The file `main.cpp` contains tests/examples for all features of this library.
+The file `tests/main.cpp` contains tests/examples for all features of this library.
