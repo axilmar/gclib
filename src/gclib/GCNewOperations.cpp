@@ -84,15 +84,6 @@ void* GCNewOperations::registerAllocation(size_t size, void* mem, GCIBlockHeader
 }
 
 
-//register gc memory for shareable object
-void* GCNewOperations::registerAllocationShared(size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList, GCISharedScanner& sharedScanner) {
-    return registerAllocationInternal(size, mem, vtable, prevPtrList, [&](GCThread& thread, GCBlockHeader* block) {
-        thread.data->shareableBlocks.push_back(block);
-        block->sharedScanner = &sharedScanner;
-    });
-}
-
-
 //sets the current ptr list
 void GCNewOperations::setPtrList(GCList<GCPtrStruct>* ptrList) {
     GCThread::instance().ptrs = ptrList;

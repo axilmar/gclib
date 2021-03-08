@@ -3,10 +3,8 @@
 
 
 #include <type_traits>
-#include <memory>
 #include "GCPtrStruct.hpp"
 #include "GCPtrOperations.hpp"
-#include "GCDeleteOperations.hpp"
 
 
 ///private GC ptr functions.
@@ -153,14 +151,6 @@ public:
      */
     operator T*() const noexcept {
         return get();
-    }
-
-    /**
-     * Auto conversion to shared ptr.
-     * @return shared ptr to this; will apply reference counting to this object.
-     */
-    operator std::shared_ptr<T>() const noexcept {
-        return std::shared_ptr<T>{ get(), GCDeleteOperations::gcdelete };
     }
 
     /**

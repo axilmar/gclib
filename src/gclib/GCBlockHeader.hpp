@@ -27,15 +27,11 @@ public:
     ///thread data the block belongs to.
     struct GCThreadData* owner;
 
-    //shared scanner; set only if the block can contain objects that have shared ptrs to them
-    class GCISharedScanner* sharedScanner;
-
     ///constructor.
     GCBlockHeader(size_t size, GCIBlockHeaderVTable& vtable, struct GCThreadData* owner)
         : end(reinterpret_cast<char*>(this) + size)
         , vtable(vtable)
         , owner(owner)
-        , sharedScanner(nullptr)
     {
     }
 };

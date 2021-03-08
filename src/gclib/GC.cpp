@@ -119,13 +119,6 @@ static void mark(GCCollectorData& collectorData, GCBlockHeader* block) {
     block->detach();
     block->owner->markedBlocks.append(block);
 
-    //if the block is shareable, then remove it from shareable vector and put it in marked shareable vector
-    if (block->sharedScanner) {
-        auto it = std::lower_bound(block->owner->shareableBlocks.begin(), block->owner->shareableBlocks.end(), block);
-        block->owner->shareableBlocks.erase(it);
-        block->owner->markedShareableBlocks.push_back(block);
-    }
-
     //increment the global allocation size by the size of the marked block
     const size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
     collectorData.allocSize.fetch_add(size, std::memory_order_relaxed);
@@ -165,16 +158,6 @@ static void scan(GCCollectorData& collectorData, const GCList<GCPtrStruct>& ptrs
 }
 
 
-//marks shared blocks
-static void markShared(GCCollectorData& collectorData, const std::vector<GCBlockHeader*>& blocks) {
-    for (GCBlockHeader* block : blocks) {
-        if (block->sharedScanner->isShared(block + 1, block->end)) {
-            mark(collectorData, block);
-        }
-    }
-}
-
-
 //mark reachable objects
 static void mark(GCCollectorData& collectorData) {
 
@@ -192,22 +175,12 @@ static void mark(GCCollectorData& collectorData) {
     //recompute the allocation size as objects are being marked
     collectorData.allocSize.store(0, std::memory_order_relaxed);
 
-    //sort all shareable block vectors in order to easily locate entry of objects in shareable block vectors
-    for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
-        std::sort(data->shareableBlocks.begin(), data->shareableBlocks.end(), [](GCBlockHeader* a, GCBlockHeader* b) { return a < b; });
-    }
-    for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end(); data = data->next) {
-        std::sort(data->shareableBlocks.begin(), data->shareableBlocks.end(), [](GCBlockHeader* a, GCBlockHeader* b) { return a < b; });
-    }
-
     //scan pointers of active/terminated threads; also mark shareable blocks that are still shared
     for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
         scan(collectorData, data->ptrs);
-        markShared(collectorData, data->shareableBlocks);
     }
     for (GCThreadData* data = collectorData.terminatedThreads.first(); data != collectorData.terminatedThreads.end(); data = data->next) {
         scan(collectorData, data->ptrs);
-        markShared(collectorData, data->shareableBlocks);
     }
 }
 
@@ -221,7 +194,6 @@ static void cleanup(GCCollectorData& collectorData, GCList<GCBlockHeader>& block
     for (GCThreadData* data = collectorData.threads.first(); data != collectorData.threads.end(); data = data->next) {
         blocks.append(std::move(data->blocks));
         data->blocks = std::move(data->markedBlocks);
-        data->shareableBlocks = std::move(data->markedShareableBlocks);
     }
 
     //gather unreachable blocks from terminated threads;
@@ -243,7 +215,6 @@ static void cleanup(GCCollectorData& collectorData, GCList<GCBlockHeader>& block
         else {
             blocks.append(std::move(data->blocks));
             data->blocks = std::move(data->markedBlocks);
-            data->shareableBlocks = std::move(data->markedShareableBlocks);
             data = data->next;
         }
     }

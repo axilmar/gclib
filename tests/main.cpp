@@ -612,101 +612,6 @@ void test18() {
         waitCollection(prevCount);
     });
 }
-
-
-class SharedObject : public std::enable_shared_from_this<SharedObject> {
-public:
-    std::shared_ptr<SharedObject> sharedOther;
-    GCPtr<SharedObject> gcOther;
-};
-
-
-void test19() {
-    doTest("Integration with shared ptrs: shared -> shared", []() {
-        size_t initAllocSize = GC::getAllocSize();
-
-        std::shared_ptr<SharedObject> object1{ gcnew<SharedObject>() };
-        object1->sharedOther = gcnew<SharedObject>();
-        size_t prevAllocSize = GC::getAllocSize();
-
-        //check size without resetting the shared ptr
-        size_t allocSize = GC::collect();
-        check(allocSize == prevAllocSize, "invalid collection of shareable object");
-
-        //reset the shared ptr; the object must be collected
-        object1.reset();
-        allocSize = GC::collect();
-        check(allocSize == initAllocSize, "invalid deletion of shareable object");
-    });
-}
-
-
-void test20() {
-    doTest("Integration with shared ptrs: shared -> gc", []() {
-        size_t initAllocSize = GC::getAllocSize();
-
-        std::shared_ptr<SharedObject> object1{ gcnew<SharedObject>() };
-        object1->gcOther = gcnew<SharedObject>();
-        size_t prevAllocSize = GC::getAllocSize();
-
-        //check size without resetting the shared ptr
-        size_t allocSize = GC::collect();
-        check(allocSize == prevAllocSize, "invalid collection of shareable object");
-
-        //reset the shared ptr; the object must be collected
-        object1.reset();
-        allocSize = GC::collect();
-        check(allocSize == initAllocSize, "invalid deletion of shareable object");
-    });
-}
-
-
-void test21() {
-    doTest("Integration with shared ptrs: gc -> shared", []() {
-        size_t initAllocSize = GC::getAllocSize();
-
-        GCPtr<SharedObject> object1{ gcnew<SharedObject>() };
-        object1->sharedOther = gcnew<SharedObject>();
-        size_t prevAllocSize = GC::getAllocSize();
-
-        //check size without resetting the shared ptr
-        size_t allocSize = GC::collect();
-        check(allocSize == prevAllocSize, "invalid collection of gc object");
-
-        //reset the shared ptr; the object must be collected
-        object1.reset();
-        allocSize = GC::collect();
-        check(allocSize == initAllocSize, "invalid deletion of gc object");
-    });
-}
-
-
-void test22() {
-    doTest("Integration with shared ptrs: object both shared and gc'd", []() {
-        size_t initAllocSize = GC::getAllocSize();
-
-        GCPtr<SharedObject> object1{ gcnew<SharedObject>() };
-        std::shared_ptr<SharedObject> object2{ object1 };
-        size_t prevAllocSize = GC::getAllocSize();
-
-        //check size without resetting any pointers
-        size_t allocSize = GC::collect();
-        check(allocSize == prevAllocSize, "invalid collection of gc object");
-
-        //reset the gc ptr; the object must not be collected since there is a shared ptr to it
-        object1.reset();
-        allocSize = GC::collect();
-        check(allocSize == prevAllocSize, "invalid collection of gc/shared object after gc ptr reset");
-
-        //reset the shared ptr; the object must be collected since there is no shared ptr to it
-        object1 = object2.get();
-        object2.reset();
-        allocSize = GC::collect();
-        check(allocSize == initAllocSize, "invalid collection of gc/shared object after gc/shared ptr reset");
-    });
-}
-
-
 int main() {
     std::cout << std::fixed;
 
@@ -728,10 +633,6 @@ int main() {
     test16();
     test17();
     test18();
-    test19();
-    test20();
-    test21();
-    test22();
 
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

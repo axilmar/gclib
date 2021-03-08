@@ -5,49 +5,8 @@
 #include <new>
 #include <type_traits>
 #include "GCThreadLock.hpp"
-#include "GCBlockHeaderVTable.hpp"
-#include "GCPtr.hpp"
-#include "GCSharedScanner.hpp"
-
-
-template <class T> struct GCList;
-
-
-///class with private algorithms used by the gcnew template function.
-class GCNewOperations {
-private:
-    //if the allocation limit is exceeded, then collect garbage
-    static void collectGarbageIfAllocationLimitIsExceeded();
-
-    //returns the block header size
-    static size_t getBlockHeaderSize();
-
-    //register gc memory; returns pointer to object memory
-    static void* registerAllocation(size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList);
-
-    //register gc memory for shared object; returns pointer to object memory
-    static void* registerAllocationShared(size_t size, void* mem, GCIBlockHeaderVTable& vtable, GCList<GCPtrStruct>*& prevPtrList, GCISharedScanner& sharedScanner);
-
-    //sets the current pointer list
-    static void setPtrList(GCList<GCPtrStruct>* ptrList);
-
-    template <class T, class Malloc, class Init, class VTable> friend GCPtr<T> gcnew(size_t, Malloc&&, Init&&, VTable&);
-    template <class T> friend void gcdelete(const GCPtr<T>&);
-};
-
-
-/**
- * Thrown if memory allocation for the collector failed.   
- */
-class GCBadAlloc : public std::bad_alloc {
-public:
-    /**
-     * Returns the message for this exception.  
-     */
-    const char* what() const noexcept final {
-        return "GC memory allocation failed";
-    }
-};
+#include "GCNewOperations.hpp"
+#include "GCDeleteOperations.hpp"
 
 
 /**
@@ -85,14 +44,7 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(size_t
     }
 
     //register allocation
-    void* objectMem;
-    if constexpr (std::is_base_of_v<std::enable_shared_from_this<T>, T>) {
-        static GCSharedScanner<T> sharedScanner;
-        objectMem = GCNewOperations::registerAllocationShared(size, allocMem, vtable, prevPtrList, sharedScanner);
-    }
-    else {
-        objectMem = GCNewOperations::registerAllocation(size, allocMem, vtable, prevPtrList);
-    }
+    void* objectMem = GCNewOperations::registerAllocation(size, allocMem, vtable, prevPtrList);
 
     //initialize the objects
     try {

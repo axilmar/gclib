@@ -14,12 +14,6 @@ void GCDeleteOperations::unregisterAllocation(void* mem) {
     //remove the block from its thread
     block->detach();
 
-    //if the block is shareable, remove it from shareable blocks
-    if (block->sharedScanner) {
-        auto it = std::find(block->owner->shareableBlocks.begin(), block->owner->shareableBlocks.end(), block);
-        block->owner->shareableBlocks.erase(it);
-    }
-
     //remove the block's size from the collector
     const size_t size = reinterpret_cast<char*>(block->end) - reinterpret_cast<char*>(block);
     GCCollectorData::instance().allocSize.fetch_sub(size, std::memory_order_relaxed);

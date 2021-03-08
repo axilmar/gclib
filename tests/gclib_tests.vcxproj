@@ -50,6 +50,7 @@
     <ClInclude Include="..\include\gclib\GCList.hpp" />
     <ClInclude Include="..\include\gclib\gcmalloc.hpp" />
     <ClInclude Include="..\include\gclib\gcnew.hpp" />
+    <ClInclude Include="..\include\gclib\GCNewOperations.hpp" />
     <ClInclude Include="..\include\gclib\GCNode.hpp" />
     <ClInclude Include="..\include\gclib\GCPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCPtrOperations.hpp" />

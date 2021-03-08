@@ -103,5 +103,8 @@
     <ClInclude Include="..\include\gclib\GCDeleteOperations.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\gclib\GCNewOperations.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
