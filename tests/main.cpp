@@ -710,7 +710,6 @@ void test22() {
 int main() {
     std::cout << std::fixed;
 
-    /*
     test1();
     test2();
     test3();
@@ -729,7 +728,6 @@ int main() {
     test16();
     test17();
     test18();
-    */
     test19();
     test20();
     test21();
