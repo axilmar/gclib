@@ -30,7 +30,8 @@
     <ClCompile Include="..\src\gclib\GC.cpp" />
     <ClCompile Include="..\src\gclib\GCAsyncCollectionThread.cpp" />
     <ClCompile Include="..\src\gclib\GCCollectorData.cpp" />
-    <ClCompile Include="..\src\gclib\gcnew.cpp" />
+    <ClCompile Include="..\src\gclib\GCDeleteOperations.cpp" />
+    <ClCompile Include="..\src\gclib\GCNewOperations.cpp" />
     <ClCompile Include="..\src\gclib\GCPtr.cpp" />
     <ClCompile Include="..\src\gclib\GCThread.cpp" />
     <ClCompile Include="..\src\gclib\GCThreadLock.cpp" />
@@ -42,8 +43,10 @@
     <ClInclude Include="..\include\gclib\GCBasicPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCBlockHeaderVTable.hpp" />
     <ClInclude Include="..\include\gclib\GCCustomBlockHeaderVTable.hpp" />
+    <ClInclude Include="..\include\gclib\GCDeleteOperations.hpp" />
     <ClInclude Include="..\include\gclib\GCIBlockHeaderVTable.hpp" />
     <ClInclude Include="..\include\gclib\GCIScannableObject.hpp" />
+    <ClInclude Include="..\include\gclib\GCISharedScanner.hpp" />
     <ClInclude Include="..\include\gclib\GCList.hpp" />
     <ClInclude Include="..\include\gclib\gcmalloc.hpp" />
     <ClInclude Include="..\include\gclib\gcnew.hpp" />
@@ -51,6 +54,7 @@
     <ClInclude Include="..\include\gclib\GCPtr.hpp" />
     <ClInclude Include="..\include\gclib\GCPtrOperations.hpp" />
     <ClInclude Include="..\include\gclib\GCPtrStruct.hpp" />
+    <ClInclude Include="..\include\gclib\GCSharedScanner.hpp" />
     <ClInclude Include="..\include\gclib\GCThreadLock.hpp" />
     <ClInclude Include="..\include\gclib\gctraits.hpp" />
     <ClInclude Include="..\src\gclib\GCAsyncCollectionThread.hpp" />

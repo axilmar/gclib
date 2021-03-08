@@ -19,7 +19,7 @@ public:
     void* end;
 
     ///last gc cycle.
-    std::size_t cycle{ 0 };
+    size_t cycle{ 0 };
 
     ///vtable that manages this block header
     GCIBlockHeaderVTable& vtable;
@@ -27,11 +27,15 @@ public:
     ///thread data the block belongs to.
     struct GCThreadData* owner;
 
+    //shared scanner; set only if the block can contain objects that have shared ptrs to them
+    class GCISharedScanner* sharedScanner;
+
     ///constructor.
-    GCBlockHeader(std::size_t size, GCIBlockHeaderVTable& vtable, struct GCThreadData* owner)
+    GCBlockHeader(size_t size, GCIBlockHeaderVTable& vtable, struct GCThreadData* owner)
         : end(reinterpret_cast<char*>(this) + size)
         , vtable(vtable)
         , owner(owner)
+        , sharedScanner(nullptr)
     {
     }
 };

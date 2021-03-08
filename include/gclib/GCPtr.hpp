@@ -3,8 +3,10 @@
 
 
 #include <type_traits>
+#include <memory>
 #include "GCPtrStruct.hpp"
 #include "GCPtrOperations.hpp"
+#include "GCDeleteOperations.hpp"
 
 
 ///private GC ptr functions.
@@ -154,6 +156,14 @@ public:
     }
 
     /**
+     * Auto conversion to shared ptr.
+     * @return shared ptr to this; will apply reference counting to this object.
+     */
+    operator std::shared_ptr<T>() const noexcept {
+        return std::shared_ptr<T>{ get(), GCDeleteOperations::gcdelete };
+    }
+
+    /**
      * The dereference operator.
      * @return the raw pointer value.
      * @exception std::runtime_error thrown if the pointer is null.
@@ -207,6 +217,16 @@ public:
     template <class N> GCPtr& operator += (N off) {
         GCPtrOperations::copy(value, get() + off);
         return *this;
+    }
+
+    /**
+     * Sets this pointer to null.
+     * @return previous pointer value.
+     */
+    T* reset() {
+        T* result = get();
+        operator = (nullptr);
+        return result;
     }
 
 private:

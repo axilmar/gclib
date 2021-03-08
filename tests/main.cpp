@@ -18,13 +18,13 @@ template <class F> double timeFunction(F&& func) {
 
 
 bool firstError = true;
-std::size_t errorCount{ 0 };
+size_t errorCount{ 0 };
 
 
 template <class F> void doTest(const std::string& name, F&& func) {
     std::cout << "Test: " << name;
     firstError = true;
-    const std::size_t prevErrorCount = errorCount;
+    const size_t prevErrorCount = errorCount;
     double dur = timeFunction(std::forward<F>(func));
     if (errorCount == prevErrorCount) {
         std::cout << ": OK. Duration: " << dur << " seconds.\n";
@@ -70,7 +70,7 @@ public:
         count.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    //void* operator new(std::size_t s) {
+    //void* operator new(size_t s) {
     //    return ::operator new(s);
     //}
 
@@ -87,8 +87,8 @@ void test1() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize == prevAllocSize, "No data should have been collected");
@@ -105,8 +105,8 @@ void test2() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize <= prevAllocSize, "Data should have been collected");
@@ -123,8 +123,8 @@ void test3() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize == prevAllocSize, "No data should have been collected");
@@ -142,8 +142,8 @@ void test4() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize == prevAllocSize, "No data should have been collected");
@@ -161,8 +161,8 @@ void test5() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize < prevAllocSize, "Data should have been collected");
@@ -181,8 +181,8 @@ void test6() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize < prevAllocSize, "Data should have been collected");
@@ -196,7 +196,7 @@ struct Node {
     GCPtr<Node> right;
     int data;
 
-    Node(std::size_t depth = 1, int data = 0) 
+    Node(size_t depth = 1, int data = 0) 
         : left(depth > 1 ? gcnew<Node>(depth - 1) : nullptr)
         , right(depth > 1 ? gcnew<Node>(depth - 1) : nullptr)
         , data(data)
@@ -223,7 +223,7 @@ void test7() {
         thread.join();
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -236,11 +236,11 @@ void test8() {
         int prevCount = count;
 
         //initialize
-        const std::size_t ThreadCount = 4;
-        const std::size_t ObjectCountPerThread = 1 << 20;
+        const size_t ThreadCount = 4;
+        const size_t ObjectCountPerThread = 1 << 20;
         std::vector<std::thread> threads;
 
-        for (std::size_t i = 0; i < ThreadCount; ++i) {
+        for (size_t i = 0; i < ThreadCount; ++i) {
             threads.push_back(std::thread([]() {
                 GCPtr<Node> root = gcnew<Node>(16);
             }));
@@ -251,7 +251,7 @@ void test8() {
         }
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -264,13 +264,13 @@ void test9() {
         int prevCount = count;
 
         //initialize
-        const std::size_t ObjectCount = 1 << 20;
+        const size_t ObjectCount = 1 << 20;
         std::mutex mutex;
         std::condition_variable cond;
         std::deque<GCPtr<Node>> objects;
 
         std::thread consumerThread([&]() {
-            std::size_t receivedObjectCount = 0;
+            size_t receivedObjectCount = 0;
             while (receivedObjectCount < ObjectCount) {
                 std::unique_lock lock(mutex);
                 while (objects.empty()) {
@@ -282,7 +282,7 @@ void test9() {
         });
 
         std::thread producerThread([&]() {
-            for (std::size_t i = 0; i < ObjectCount; ++i) {
+            for (size_t i = 0; i < ObjectCount; ++i) {
                 {
                     std::lock_guard lock(mutex);
                     objects.push_back(gcnew<Node>());
@@ -295,7 +295,7 @@ void test9() {
         consumerThread.join();
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -312,8 +312,8 @@ void test10() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize == prevAllocSize, "No data should have been collected");
@@ -332,8 +332,8 @@ void test11() {
 
         //collect
         int prevCount = count;
-        std::size_t prevAllocSize = GC::getAllocSize();
-        const std::size_t allocSize = GC::collect();
+        size_t prevAllocSize = GC::getAllocSize();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize < prevAllocSize, "Data should have been collected");
@@ -344,7 +344,7 @@ void test11() {
 
 void test12() {
     doTest("exception during construction", []() {
-        std::size_t prevAllocSize = GC::getAllocSize();
+        size_t prevAllocSize = GC::getAllocSize();
 
         //initialize
         try {
@@ -354,7 +354,7 @@ void test12() {
         }
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //check
         check(allocSize == prevAllocSize, "Data should not have been collected");
@@ -364,7 +364,7 @@ void test12() {
 
 void test13() {
     doTest("garbage-collected array", []() {
-        std::size_t prevAllocSize = GC::getAllocSize();
+        size_t prevAllocSize = GC::getAllocSize();
         int prevCount = count;
 
         //initialize
@@ -374,7 +374,7 @@ void test13() {
         check(count == prevCount + 10, "Array not initialized correctly");
 
         //try to collect
-        std::size_t allocSize = GC::collect();
+        size_t allocSize = GC::collect();
 
         //check
         check(allocSize > prevAllocSize, "Data should not have been collected");
@@ -401,7 +401,7 @@ void test13() {
 
 void test14() {
     doTest("gcdelete", []() {
-        std::size_t prevAllocSize = GC::getAllocSize();
+        size_t prevAllocSize = GC::getAllocSize();
         int prevCount = count;
 
         //initialize
@@ -412,15 +412,15 @@ void test14() {
         check(count == prevCount + 11, "Objects not initialized correctly");
 
         //try to collect
-        std::size_t allocSize = GC::collect();
+        size_t allocSize = GC::collect();
 
         //check
         check(allocSize > prevAllocSize, "Data should not have been collected");
         check(count == prevCount + 11, "Objects should not have been destroyed");
 
         //delete objects
-        gcdelete(node);
-        gcdelete(nodeArray);
+        gcdelete(std::move(node));
+        gcdelete(std::move(nodeArray));
 
         //check
         check(GC::getAllocSize() == prevAllocSize, "Data not deleted correctly");
@@ -467,12 +467,12 @@ void freeData(void* mem) {
 
 void test15() {
     doTest("custom block header", []() {
-        std::size_t prevAllocSize = GC::getAllocSize();
+        size_t prevAllocSize = GC::getAllocSize();
         int prevCount = count;
 
         //initialize
         GCCustomBlockHeaderVTable vtable{&scanData, &cleanupData, &freeData};        
-        GCPtr<Data> data{ gcnew<Data>(sizeof(Data), [](std::size_t size) { return malloc(size); }, initData, vtable) };
+        GCPtr<Data> data{ gcnew<Data>(sizeof(Data), [](size_t size) { return malloc(size); }, initData, vtable) };
 
         //check
         check(data->value == 1, "Invalid initialization");
@@ -502,7 +502,7 @@ struct Node1 : GCIScannableObject {
     GCBasicPtr<Node1> right;
     int data;
 
-    Node1(std::size_t depth = 1, int data = 0) 
+    Node1(size_t depth = 1, int data = 0) 
         : left(depth > 1 ? gcnew<Node1>(depth - 1) : nullptr)
         , right(depth > 1 ? gcnew<Node1>(depth - 1) : nullptr)
         , data(data)
@@ -534,7 +534,7 @@ void test16() {
         thread.join();
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -547,11 +547,11 @@ void test17() {
         int prevCount = count;
 
         //initialize
-        const std::size_t ThreadCount = 4;
-        const std::size_t ObjectCountPerThread = 1 << 20;
+        const size_t ThreadCount = 4;
+        const size_t ObjectCountPerThread = 1 << 20;
         std::vector<std::thread> threads;
 
-        for (std::size_t i = 0; i < ThreadCount; ++i) {
+        for (size_t i = 0; i < ThreadCount; ++i) {
             threads.push_back(std::thread([]() {
                 GCPtr<Node1> root = gcnew<Node1>(16);
             }));
@@ -562,7 +562,7 @@ void test17() {
         }
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -575,13 +575,13 @@ void test18() {
         int prevCount = count;
 
         //initialize
-        const std::size_t ObjectCount = 1 << 20;
+        const size_t ObjectCount = 1 << 20;
         std::mutex mutex;
         std::condition_variable cond;
         std::deque<GCPtr<Node1>> objects;
 
         std::thread consumerThread([&]() {
-            std::size_t receivedObjectCount = 0;
+            size_t receivedObjectCount = 0;
             while (receivedObjectCount < ObjectCount) {
                 std::unique_lock lock(mutex);
                 while (objects.empty()) {
@@ -593,7 +593,7 @@ void test18() {
         });
 
         std::thread producerThread([&]() {
-            for (std::size_t i = 0; i < ObjectCount; ++i) {
+            for (size_t i = 0; i < ObjectCount; ++i) {
                 {
                     std::lock_guard lock(mutex);
                     objects.push_back(gcnew<Node1>());
@@ -606,7 +606,7 @@ void test18() {
         consumerThread.join();
 
         //collect
-        const std::size_t allocSize = GC::collect();
+        const size_t allocSize = GC::collect();
 
         //wait for collections to finish
         waitCollection(prevCount);
@@ -614,9 +614,103 @@ void test18() {
 }
 
 
+class SharedObject : public std::enable_shared_from_this<SharedObject> {
+public:
+    std::shared_ptr<SharedObject> sharedOther;
+    GCPtr<SharedObject> gcOther;
+};
+
+
+void test19() {
+    doTest("Integration with shared ptrs: shared -> shared", []() {
+        size_t initAllocSize = GC::getAllocSize();
+
+        std::shared_ptr<SharedObject> object1{ gcnew<SharedObject>() };
+        object1->sharedOther = gcnew<SharedObject>();
+        size_t prevAllocSize = GC::getAllocSize();
+
+        //check size without resetting the shared ptr
+        size_t allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "invalid collection of shareable object");
+
+        //reset the shared ptr; the object must be collected
+        object1.reset();
+        allocSize = GC::collect();
+        check(allocSize == initAllocSize, "invalid deletion of shareable object");
+    });
+}
+
+
+void test20() {
+    doTest("Integration with shared ptrs: shared -> gc", []() {
+        size_t initAllocSize = GC::getAllocSize();
+
+        std::shared_ptr<SharedObject> object1{ gcnew<SharedObject>() };
+        object1->gcOther = gcnew<SharedObject>();
+        size_t prevAllocSize = GC::getAllocSize();
+
+        //check size without resetting the shared ptr
+        size_t allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "invalid collection of shareable object");
+
+        //reset the shared ptr; the object must be collected
+        object1.reset();
+        allocSize = GC::collect();
+        check(allocSize == initAllocSize, "invalid deletion of shareable object");
+    });
+}
+
+
+void test21() {
+    doTest("Integration with shared ptrs: gc -> shared", []() {
+        size_t initAllocSize = GC::getAllocSize();
+
+        GCPtr<SharedObject> object1{ gcnew<SharedObject>() };
+        object1->sharedOther = gcnew<SharedObject>();
+        size_t prevAllocSize = GC::getAllocSize();
+
+        //check size without resetting the shared ptr
+        size_t allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "invalid collection of gc object");
+
+        //reset the shared ptr; the object must be collected
+        object1.reset();
+        allocSize = GC::collect();
+        check(allocSize == initAllocSize, "invalid deletion of gc object");
+    });
+}
+
+
+void test22() {
+    doTest("Integration with shared ptrs: object both shared and gc'd", []() {
+        size_t initAllocSize = GC::getAllocSize();
+
+        GCPtr<SharedObject> object1{ gcnew<SharedObject>() };
+        std::shared_ptr<SharedObject> object2{ object1 };
+        size_t prevAllocSize = GC::getAllocSize();
+
+        //check size without resetting any pointers
+        size_t allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "invalid collection of gc object");
+
+        //reset the gc ptr; the object must not be collected since there is a shared ptr to it
+        object1.reset();
+        allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "invalid collection of gc/shared object after gc ptr reset");
+
+        //reset the shared ptr; the object must be collected since there is no shared ptr to it
+        object1 = object2.get();
+        object2.reset();
+        allocSize = GC::collect();
+        check(allocSize == initAllocSize, "invalid collection of gc/shared object after gc/shared ptr reset");
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
+    /*
     test1();
     test2();
     test3();
@@ -635,7 +729,12 @@ int main() {
     test16();
     test17();
     test18();
-    
+    */
+    test19();
+    test20();
+    test21();
+    test22();
+
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;
     }

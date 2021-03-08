@@ -182,6 +182,16 @@ public:
     }
 
     /**
+     * Sets this pointer to null.
+     * @return previous pointer value.
+     */
+    T* reset() {
+        T* result = get();
+        operator = (nullptr);
+        return result;
+    }
+
+    /**
      * Used for manually scanning the pointer during the mark phase of the collection. 
      */
     void scan() const noexcept {

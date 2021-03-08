@@ -2,8 +2,10 @@
 #define GCLIB_GCTHREAD_HPP
 
 
+#include <vector>
 #include "gclib/GCPtrStruct.hpp"
 #include "gclib/GCList.hpp"
+#include "gclib/GCISharedScanner.hpp"
 #include "GCBlockHeader.hpp"
 
 
@@ -22,6 +24,12 @@ struct GCThreadData : GCNode<GCThreadData> {
 
     ///marked blocks of this this thread.
     GCList<GCBlockHeader> markedBlocks;
+
+    ///shareable blocks
+    std::vector<GCBlockHeader*> shareableBlocks;
+
+    ///marked shareable blocks
+    std::vector<GCBlockHeader*> markedShareableBlocks;
 
     ///checks if the data are empty.
     bool empty() const noexcept {

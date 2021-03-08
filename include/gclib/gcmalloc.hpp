@@ -17,7 +17,7 @@ template <class T> struct GCMalloc {
      * @param size number of objects to allocate.
      * @return pointer to allocated memory.
      */
-    static void* malloc(std::size_t size) {
+    static void* malloc(size_t size) {
         if constexpr (GCHasOperatorNew<T>::Value) {
             static_assert(GCHasOperatorDelete<T>::Value, "class has operator new but not operator delete");
             return T::operator new(size);
@@ -54,7 +54,7 @@ template <class T> struct GCMalloc<T[]> {
      * @param size number of objects to allocate.
      * @return pointer to allocated memory.
      */
-    static void* malloc(std::size_t size) {
+    static void* malloc(size_t size) {
         if constexpr (GCHasOperatorNew<T[]>::Value) {
             static_assert(GCHasOperatorDelete<T[]>::Value, "class has operator new[] but not operator delete[]");
             return T::operator new[](size);

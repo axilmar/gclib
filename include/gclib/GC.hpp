@@ -11,7 +11,7 @@ public:
      * Collects garbage synchronously.
      * @return number of allocated bytes after the collection.
      */
-    static std::size_t collect();
+    static size_t collect();
 
     /**
      * Collects data asynchronously. 
@@ -22,19 +22,19 @@ public:
      * Returns the current allocation size.
      * @return the current allocation size.
      */
-    static std::size_t getAllocSize();
+    static size_t getAllocSize();
 
     /**
      * Returns the current allocation limit.
      * @return the current allocation limit.
      */
-    static std::size_t getAllocLimit();
+    static size_t getAllocLimit();
 
     /**
      * Sets the current allocation limit.
      * @param limit new allocation limit.
      */
-    static void setAllocLimit(std::size_t limit);
+    static void setAllocLimit(size_t limit);
 };
 
 

@@ -5,9 +5,6 @@
     <ClCompile Include="..\src\gclib\GCThread.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\gclib\gcnew.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\gclib\GCPtr.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -21,6 +18,12 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\gclib\GCThreadLock.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\GCDeleteOperations.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\gclib\GCNewOperations.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -91,5 +94,14 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gclib.hpp" />
+    <ClInclude Include="..\include\gclib\GCISharedScanner.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCSharedScanner.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\gclib\GCDeleteOperations.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
