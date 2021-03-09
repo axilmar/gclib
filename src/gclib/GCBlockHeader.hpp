@@ -27,6 +27,9 @@ public:
     ///thread data the block belongs to.
     struct GCThreadData* owner;
 
+    ///collected flag.
+    std::atomic<bool> collected{ false };
+
     ///constructor.
     GCBlockHeader(size_t size, GCIBlockHeaderVTable& vtable, struct GCThreadData* owner)
         : end(reinterpret_cast<char*>(this) + size)

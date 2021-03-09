@@ -5,6 +5,7 @@
 #include <type_traits>
 #include "GCPtrStruct.hpp"
 #include "GCPtrOperations.hpp"
+#include "GCDeleteOperations.hpp"
 
 
 ///private GC ptr functions.
@@ -151,6 +152,20 @@ public:
      */
     operator T*() const noexcept {
         return get();
+    }
+
+    /**
+     * Conversion to shared ptr.
+     * Only possible if T inherits from std::enable_shared_from_this<T>.
+     * The block will be deleted by the operation that comes last,
+     * i.e. if the sharing expires first and then the object is found to not be reachable,
+     * it will be deleted by the collector; otherwise, if the object is found not be reachable
+     * but it still has shared pointers, it will be deleted when the sharing expires.
+     * @return a shared ptr to the object.
+     */
+    operator std::shared_ptr<T>() const {
+        static_assert(std::is_base_of_v<std::enable_shared_from_this<T>, T>, "T must inherit from std::enable_shared_from_this<T> in order to also be managed via shared ptrs");
+        return { get(), GCDeleteOperations::operatorDeleteIfCollected };
     }
 
     /**

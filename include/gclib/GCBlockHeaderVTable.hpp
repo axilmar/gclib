@@ -2,6 +2,8 @@
 #define GCLIB_GCBLOCKHEADERVTABLE_HPP
 
 
+#include <memory>
+#include <type_traits>
 #include "GCIBlockHeaderVTable.hpp"
 #include "GCIScannableObject.hpp"
 #include "gcmalloc.hpp"
@@ -41,6 +43,24 @@ public:
      */
     void free(void* mem) noexcept final {
         GCMalloc<T>::free(mem);
+    }
+
+    /**
+     * Checks if the object of the given type is shared by std::shared_ptr.
+     * If the type inherits from std::enable_shared_from_this,
+     * then if it's weak pointer is not expired, then it is considered shared,
+     * otherwise it is not.
+     * @param start start of memory block.
+     * @param end end of memory block.
+     * @return true if objects have shared pointers to them, false otherwise.
+     */
+    bool shared(void* start, void* end) const noexcept final {
+        if constexpr (std::is_base_of_v<std::enable_shared_from_this<T>, T>) {
+            return !reinterpret_cast<T*>(start)->std::enable_shared_from_this<T>::weak_from_this().expired();
+        }
+        else {
+            return false;
+        }
     }
 };
 
@@ -84,6 +104,29 @@ public:
      */
     void free(void* mem) noexcept final {
         GCMalloc<T[]>::free(mem);
+    }
+
+    /**
+     * Checks if the objects of the given type is shared by std::shared_ptr.
+     * If the type inherits from std::enable_shared_from_this,
+     * then if one of the objects' weak pointer is not expired, then it is considered shared,
+     * otherwise it is not.
+     * @param start start of memory block.
+     * @param end end of memory block.
+     * @return true if objects have shared pointers to them, false otherwise.
+     */
+    bool shared(void* start, void* end) const noexcept final {
+        if constexpr (std::is_base_of_v<std::enable_shared_from_this<T>, T>) {
+            for (T* obj = reinterpret_cast<T*>(start); obj < end; ++obj) {
+                if (!obj->std::enable_shared_from_this<T>::weak_from_this().expired()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else {
+            return false;
+        }
     }
 };
 

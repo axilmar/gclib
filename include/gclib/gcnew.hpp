@@ -12,6 +12,8 @@
 /**
  * The main function used for allocating garbage collected memory.
  * If the allocation limit is exceeded, it starts a parallel collection.
+ * The object will be deleted only if there are no gc pointers and no shared pointers to it.
+ * Type T must inherit from std::enable_shared_from_this in order to make the collector aware of using shared pointers.
  * @param size number of bytes to allocate.
  * @param malloc function to use for allocating memory.
  * @param init function to use for initializing objects.
@@ -56,7 +58,7 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(size_t
     //catch any exceptions during construction in order to undo the allocation changes
     catch (...) {
         GCNewOperations::setPtrList(prevPtrList);
-        GCDeleteOperations::unregisterAllocation(allocMem);
+        GCDeleteOperations::unregisterBlock((class GCBlockHeader*)allocMem);
         vtable.free(allocMem);
         throw;
     }
@@ -67,6 +69,8 @@ template <class T, class Malloc, class Init, class VTable> GCPtr<T> gcnew(size_t
 
 /**
  * Allocates a garbage-collected object.
+ * The object will be deleted only if there are no gc pointers and no shared pointers to it.
+ * Type T must inherit from std::enable_shared_from_this in order to make the collector aware of using shared pointers.
  * @param args arguments to pass to the object's constructor.
  * @return pointer to the object.
  * @exception GCBadAlloc thrown if memory allocation fails.
@@ -95,6 +99,8 @@ template <class T, class... Args> GCPtr<T> gcnew(Args&&... args) {
 
 /**
  * Allocates a garbage-collected array of objects.
+ * The objects will be deleted only if there are no gc pointers and no shared pointers to them.
+ * Type T must inherit from std::enable_shared_from_this in order to make the collector aware of using shared pointers.
  * @param count number of elements of the array.
  * @param args arguments to pass to each object's constructor.
  * @return pointer to the object.
@@ -128,10 +134,12 @@ template <class T, class... Args> GCPtr<T> gcnewArray(size_t count, Args&&... ar
 /**
  * Invokes the given object's destructor or the destructors of each object in the array
  * and deallocates the memory block pointed to by the given pointer.
- * @param ptr ptr to object to deallocate; it shall point to a garbage-collected object or a garbage-collected array of objects.
+ * @param ptr ptr to object to deallocate; it shall point to a garbage-collected object or a garbage-collected array of objects;
+ * on return, it is reset.
  */
 template <class T> void gcdelete(GCPtr<T>&& ptr) {
-    GCDeleteOperations::gcdelete(ptr.reset());
+    GCDeleteOperations::operatorDelete(ptr.get());
+    ptr.reset();
 }
 
 

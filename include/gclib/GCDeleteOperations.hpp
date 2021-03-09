@@ -8,11 +8,20 @@ template <class T> class GCPtr;
 //internal class with delete algorithms.
 class GCDeleteOperations {
 private:
-    //unregister an allocation
-    static void unregisterAllocation(void* block);
+    //unregisters a block
+    static void unregisterBlock(class GCBlockHeader* block);
 
-    //delete operation
-    static void gcdelete(void* ptr);
+    //delete a block without unregistering it
+    static void deleteBlock(class GCBlockHeader* block);
+
+    //delete and unregister a block
+    static void deleteAndUnregisterBlock(class GCBlockHeader* block);
+
+    //delete operator
+    static void operatorDelete(void* ptr);
+
+    //delete block only if has already been collected
+    static void operatorDeleteIfCollected(void* ptr);
 
     //gcnew uses the 'unregisterAllocation' function
     template <class T, class Malloc, class Init, class VTable> friend GCPtr<T> gcnew(size_t size, Malloc&& malloc, Init&& init, VTable& vtable);
@@ -23,7 +32,8 @@ private:
     //global delete function uses the function 'gcdelete'
     template <class T> friend void gcdelete(GCPtr<T>&& ptr);
 
-
+    //internal function
+    friend static void sweep(class GCBlockHeader* block);
 };
 
 

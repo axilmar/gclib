@@ -8,6 +8,7 @@ gclib is a C++17 garbage-collection library with the following features:
 - can be used concurrently by multiple threads; very low (almost non-existent) lock contention.
 - allows pointers to the middle of objects or object arrays.
 - allows garbage-collected objects to be allocated statically, i.e. as global/local/member variables.
+- full integration with shared pointers.
 
 ## Classes
 
@@ -58,3 +59,12 @@ int main() {
 ## More Examples
 
 The file `tests/main.cpp` contains tests/examples for all features of this library.
+
+## Integration with shared pointers.
+
+An object allocated with `gcnew` can also be managed via std::shared_ptr. The following principles apply:
+
+- the object must inherit from std::enable_shared_from_this, in order to make the GC recognize the object is being shared; this is statically enforced anyway: a compilation error will be issued if this precondition is not met.
+- an object that is to be deleted by the collector and it is shared via shared ptrs is not actually deleted by the collector; it will be deleted via its last shared ptr.
+- an object that is to be deleted via its last shared ptr and not having been recognized as being unreachable by the collector will not be deleted via its last shared ptr; it will be deleted by the collector.
+- the above decisions ensure that when an object is deleted, there are no gc or shared ptrs left dangling.

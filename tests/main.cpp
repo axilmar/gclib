@@ -465,13 +465,18 @@ void freeData(void* mem) {
 }
 
 
+bool dataShared(void* start, void* end) {
+    return false;
+}
+
+
 void test15() {
     doTest("custom block header", []() {
         size_t prevAllocSize = GC::getAllocSize();
         int prevCount = count;
 
         //initialize
-        GCCustomBlockHeaderVTable vtable{&scanData, &cleanupData, &freeData};        
+        GCCustomBlockHeaderVTable vtable{&scanData, &cleanupData, &freeData, &dataShared};        
         GCPtr<Data> data{ gcnew<Data>(sizeof(Data), [](size_t size) { return malloc(size); }, initData, vtable) };
 
         //check
@@ -612,6 +617,64 @@ void test18() {
         waitCollection(prevCount);
     });
 }
+
+
+static void* sharedObjectBlock{ nullptr };
+
+
+class SharedObject : public std::enable_shared_from_this<SharedObject> {
+public:
+    std::string data;
+
+    SharedObject() : data("data") {
+    }
+
+    ~SharedObject() {
+        data.clear();
+    }
+
+    void* operator new(size_t size) {
+        sharedObjectBlock = ::operator new(size);
+        return sharedObjectBlock;
+    }
+
+    void operator delete(void* mem) {
+        int x = 0;
+    }
+};
+
+
+void test19() {
+    doTest("Avoid collection if object is shared by shared ptr", []() {
+        const size_t prevAllocSize = GC::getAllocSize();
+
+        GCPtr<SharedObject> object1{gcnew<SharedObject>()};
+        std::shared_ptr<SharedObject> object2{object1};
+        SharedObject* object3{ object1.get() };
+        size_t currAllocSize = GC::getAllocSize();
+
+        //try collection without any reset
+        size_t allocSize = GC::collect();
+        check(allocSize == currAllocSize, "Object should not have been collected");
+        check(object2->data == "data", "Object should not have been deleted (1)");
+
+        //reset the gc ptr
+        object1.reset();
+        allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "Object should have been collected (1)");
+        check(object2->data == "data", "Object should not have been deleted (2)");
+
+        //reset the shared ptr
+        object2.reset();
+        allocSize = GC::collect();
+        check(allocSize == prevAllocSize, "Object should have been collected (2)");
+        check(object3->data.empty(), "Object should have been deleted");
+
+        ::operator delete(sharedObjectBlock);
+    });
+}
+
+
 int main() {
     std::cout << std::fixed;
 
@@ -633,6 +696,7 @@ int main() {
     test16();
     test17();
     test18();
+    test19();
 
     if (errorCount > 0) {
         std::cout << "Errors: " << errorCount << std::endl;

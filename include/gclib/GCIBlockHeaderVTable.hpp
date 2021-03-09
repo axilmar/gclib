@@ -26,6 +26,15 @@ public:
      * @param mem pointer to memory to free.
      */
     virtual void free(void* mem) noexcept = 0;
+
+    /**
+     * Interface for checking if the object is or objects are shared via shared pointers.
+     * Objects that are shared by shared pointers at the time of collection are not collected.
+     * @param start start of memory block.
+     * @param end end of memory block.
+     * @return true if objects have shared pointers to them, false otherwise.
+     */
+    virtual bool shared(void* start, void* end) const noexcept = 0;
 };
 
 

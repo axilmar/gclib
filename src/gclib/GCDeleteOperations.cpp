@@ -6,11 +6,8 @@
 #include "GCCollectorData.hpp"
 
 
-//unregisters an allocation
-void GCDeleteOperations::unregisterAllocation(void* mem) {
-    //get the pointer to the block
-    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(mem);
-
+//unregister block
+void GCDeleteOperations::unregisterBlock(GCBlockHeader* block) {
     //remove the block from its thread
     block->detach();
 
@@ -20,20 +17,46 @@ void GCDeleteOperations::unregisterAllocation(void* mem) {
 }
 
 
-//delete operation
-void GCDeleteOperations::gcdelete(void* ptr) {
-    //if the pointer is null, do nothing else
-    if (!ptr) {
-        return;
+//internal block delete
+void GCDeleteOperations::deleteBlock(GCBlockHeader* block) {
+    //reset the block's pointers so as that the finalizer does not access dangling pointers
+    for (GCPtrStruct* ptr = block->ptrs.first(); ptr != block->ptrs.end(); ptr = ptr->next) {
+        ptr->mutex = nullptr;
+        ptr->value = nullptr;
     }
-
-    GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(ptr) - 1;
 
     //finalize the object or objects
     block->vtable.finalize(block + 1, block->end);
 
-    //remove the block from the collector
-    GCThreadLock lock;
-    unregisterAllocation(block);
+    //free the memory occupied by the block
     block->vtable.free(block);
+}
+
+
+//delete and unregister a block
+void GCDeleteOperations::deleteAndUnregisterBlock(class GCBlockHeader* block) {
+    {
+        GCThreadLock lock;
+        unregisterBlock(block);
+    }
+    deleteBlock(block);
+}
+
+
+//delete operation
+void GCDeleteOperations::operatorDelete(void* ptr) {
+    if (ptr) {
+        deleteAndUnregisterBlock(reinterpret_cast<GCBlockHeader*>(ptr) - 1);
+    }
+}
+
+
+//delete block only if has already been collected
+void GCDeleteOperations::operatorDeleteIfCollected(void* ptr) {
+    if (ptr) {
+        GCBlockHeader* block = reinterpret_cast<GCBlockHeader*>(ptr) - 1;
+        if (block->collected.load(std::memory_order::memory_order_acquire)) {
+            deleteBlock(block);
+        }
+    }
 }

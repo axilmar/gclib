@@ -10,19 +10,22 @@
  * @param Scan type of the scan function.
  * @param Finalize type of the finalize function.
  * @param Free type of the free function.
+ * @param Shared type of the shared function.
  */
-template <class Scan, class Finalize, class Free> class GCCustomBlockHeaderVTable : public GCIBlockHeaderVTable {
+template <class Scan, class Finalize, class Free, class Shared> class GCCustomBlockHeaderVTable : public GCIBlockHeaderVTable {
 public:
     /**
      * Constructor.
      * @param scan function.
      * @param finalize finalize function.
      * @param free free function.
+     * @param shared the shared function.
      */
-    GCCustomBlockHeaderVTable(Scan&& scan, Finalize&& finalize, Free&& free)
+    GCCustomBlockHeaderVTable(Scan&& scan, Finalize&& finalize, Free&& free, Shared&& shared)
         : m_scan(std::move(scan))
         , m_finalize(std::move(finalize))
         , m_free(std::move(free))
+        , m_shared(std::move(shared))
     {
     }
 
@@ -52,10 +55,21 @@ public:
         m_free(mem);
     }
 
+    /**
+     * Invokes the shared function passed in the constructor. 
+     * @param start start of memory block.
+     * @param end end of memory block.
+     * @return true if objects have shared pointers to them, false otherwise.
+     */
+    virtual bool shared(void* start, void* end) const noexcept {
+        return m_shared(start, end);
+    }
+
 private:
     Scan m_scan;
     Finalize m_finalize;
     Free m_free;
+    Shared m_shared;
 };
 
 
@@ -64,11 +78,12 @@ private:
  * @param scan the scan function.
  * @param finalize the finalize function.
  * @param free the free function.
+ * @param shared the shared function.
  * @return custom block header vtable.
  */
-template <class Scan, class Finalize, class Free> 
-GCCustomBlockHeaderVTable<Scan, Finalize, Free> GCMakeBlockHeaderVTable(Scan&& scan, Finalize&& finalize, Free&& free) {
-    return { std::move(scan), std::move(finalize), std::move(free) };
+template <class Scan, class Finalize, class Free, class Shared> 
+GCCustomBlockHeaderVTable<Scan, Finalize, Free, Shared> GCMakeBlockHeaderVTable(Scan&& scan, Finalize&& finalize, Free&& free, Shared&& shared) {
+    return { std::move(scan), std::move(finalize), std::move(free), std::move(shared) };
 }
 
 

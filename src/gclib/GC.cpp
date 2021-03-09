@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "gclib/GC.hpp"
 #include "gclib/GCPtrOperations.hpp"
+#include "gclib/GCDeleteOperations.hpp"
 #include "GCCollectorData.hpp"
 #include "GCAsyncCollectionThread.hpp"
 
@@ -229,18 +230,16 @@ static void cleanup(GCCollectorData& collectorData, GCList<GCBlockHeader>& block
 
 //sweeps a block
 static void sweep(GCBlockHeader* block) {
+    //set the collected flag
+    block->collected.store(true, std::memory_order::memory_order_release);
 
-    //reset the block's pointers so as that the finalizer does not access dangling pointers
-    for (GCPtrStruct* ptr = block->ptrs.first(); ptr != block->ptrs.end(); ptr = ptr->next) {
-        ptr->mutex = nullptr;
-        ptr->value = nullptr;
+    //if the block is shared via shared pointers, do not delete it
+    if (block->vtable.shared(block + 1, block->end)) {
+        return;
     }
 
-    //finalize
-    block->vtable.finalize(block + 1, block->end);
-
-    //free memory
-    block->vtable.free(block);
+    //delete the block
+    GCDeleteOperations::deleteBlock(block);
 }
 
 
